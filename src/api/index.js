@@ -7,6 +7,7 @@ const { CORS_OPTIONS } = require('../config')
 const logger = require('morgan')
 const {DBConnect} =require('./db')
 const indexRouter = require('./routes/index')
+const {Logger} =require('../utils')
 
 const app = express()
 
@@ -58,11 +59,11 @@ function onError(error) {
     // handle specific listen errors with friendly messages
     switch (error.code) {
         case 'EACCES':
-            console.error(bind + ' requires elevated privileges')
+            Logger.error(bind + ' requires elevated privileges')
             process.exit(1)
             break
         case 'EADDRINUSE':
-            console.error(bind + ' is already in use')
+            Logger.error(bind + ' is already in use')
             process.exit(1)
             break
         default:
@@ -73,7 +74,7 @@ function onError(error) {
 function onListening() {
     let addr = server.address()
     let bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port
-    console.info('Listening on ' + bind)
+    Logger.info('Listening on ' + bind)
 }
 
 module.exports = app

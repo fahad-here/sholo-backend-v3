@@ -4,7 +4,7 @@ const {
     MONGO_DEV_CONNECTION_STRING,
     MONGO_PRODUCTION_CONNECTION_STRING
 } = require('../../../config')
-
+const {Logger} =require('../../../utils')
 mongoose.Promise = Promise
 
 const dbURL =
@@ -19,27 +19,27 @@ const DBConnect = () => {
 const DBConnection = mongoose.connection
 
 DBConnection.on('connecting', () => {
-    console.info()
+    Logger.info('Connecting to DB')
 })
 
 DBConnection.on('connected', () => {
-    console.info('Connected to DB')
+    Logger.info('Connected to DB')
 })
 
 DBConnection.on('open', () => {
-    console.info()
+    Logger.info('Opened DB Connection')
 })
 
 DBConnection.on('reconnected', () => {
-    console.info()
+    Logger.info('Reconnected To DB')
 })
 
 DBConnection.on('disconnected', () => {
-    console.info()
+    Logger.info('Disconnected from DB')
 })
 
-DBConnection.on('error', () => {
-    console.info()
+DBConnection.on('error', error => {
+    Logger.info('Error Connecting To DB', error)
 })
 
 module.exports = DBConnect
