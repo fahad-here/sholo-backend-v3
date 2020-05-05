@@ -3,11 +3,11 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const http = require('http')
 const cors = require('cors')
-const {CORS_OPTIONS} = require('../config')
+const { CORS_OPTIONS } = require('../config')
 const logger = require('morgan')
-const {DBConnect} = require('./db')
+const { DBConnect } = require('./db')
 const indexRouter = require('./routes/index')
-const {Logger, RouteErrorHandler} = require('../utils')
+const { Logger, RouteErrorHandler } = require('../utils')
 
 const app = express()
 
@@ -18,7 +18,7 @@ app.set('view engine', 'ejs')
 
 app.use(logger('dev'))
 app.use(express.json())
-app.use(bodyParser.urlencoded({extended: false}))
+app.use(bodyParser.urlencoded({ extended: false }))
 
 app.use(cors(CORS_OPTIONS))
 

@@ -1,4 +1,4 @@
-const mongoose = require("mongoose")
+const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 const passportLocalMongoose = require('passport-local-mongoose')
 const findOrCreate = require('mongoose-findorcreate')
@@ -19,7 +19,6 @@ UserSchema.plugin(passportLocalMongoose, {
     usernameLowerCase: true, // Ensure that all emails are lowercase
     session: false // Disable sessions as we'll use JWTs
 })
-const User = mongoose.model("user", UserSchema)
+const User = mongoose.model('user', UserSchema)
 
 module.exports = User
-

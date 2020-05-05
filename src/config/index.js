@@ -1,4 +1,4 @@
-require("dotenv").config()
+require('dotenv').config()
 
 const {
     MONGO_DEV_CONNECTION_STRING,
@@ -11,14 +11,14 @@ const {
     JWT_REFRESH_ALGORITHM
 } = process.env
 
-const whitelist = ["http://localhost:3000"]
+const whitelist = ['http://localhost:3000']
 
 const CORS_CONFIG = {
     origin: (origin, callback) => {
         if (whitelist.indexOf(origin) !== -1) {
             callback(null, true)
         } else {
-            callback(new Error("Not allowed by CORS"))
+            callback(new Error('Not allowed by CORS'))
         }
     }
 }

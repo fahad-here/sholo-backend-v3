@@ -4,16 +4,20 @@ const {
     MONGO_DEV_CONNECTION_STRING,
     MONGO_PRODUCTION_CONNECTION_STRING
 } = require('../../../config')
-const {Logger} =require('../../../utils')
+const { Logger } = require('../../../utils')
 mongoose.Promise = Promise
 
 const dbURL =
-    NODE_ENV !== "production"
+    NODE_ENV !== 'production'
         ? MONGO_DEV_CONNECTION_STRING
         : MONGO_PRODUCTION_CONNECTION_STRING
 
 const DBConnect = () => {
-    mongoose.connect(dbURL, {auto_reconnect: true, useNewUrlParser: true, useUnifiedTopology: true})
+    mongoose.connect(dbURL, {
+        auto_reconnect: true,
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    })
 }
 
 const DBConnection = mongoose.connection
@@ -38,7 +42,7 @@ DBConnection.on('disconnected', () => {
     Logger.info('Disconnected from DB')
 })
 
-DBConnection.on('error', error => {
+DBConnection.on('error', (error) => {
     Logger.info('Error Connecting To DB', error)
 })
 
