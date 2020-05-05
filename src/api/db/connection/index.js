@@ -13,7 +13,7 @@ const dbURL =
         : MONGO_PRODUCTION_CONNECTION_STRING
 
 const DBConnect = () => {
-    mongoose.connect(dbURL, {auto_reconnect: true})
+    mongoose.connect(dbURL, {auto_reconnect: true, useNewUrlParser: true, useUnifiedTopology: true})
 }
 
 const DBConnection = mongoose.connection
@@ -23,7 +23,7 @@ DBConnection.on('connecting', () => {
 })
 
 DBConnection.on('connected', () => {
-    console.info()
+    console.info('Connected to DB')
 })
 
 DBConnection.on('open', () => {

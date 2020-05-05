@@ -5,7 +5,7 @@ const http = require('http')
 const cors = require('cors')
 const { CORS_OPTIONS } = require('../config')
 const logger = require('morgan')
-
+const {DBConnect} =require('./db')
 const indexRouter = require('./routes/index')
 
 const app = express()
@@ -20,6 +20,8 @@ app.use(express.json())
 app.use(bodyParser.urlencoded({ extended: false }))
 
 app.use(cors(CORS_OPTIONS))
+
+DBConnect()
 
 app.use('/api/v3', indexRouter)
 
