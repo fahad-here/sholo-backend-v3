@@ -1,7 +1,9 @@
 const UserSchema = require('./user')
+const TokenSchema = require('./token')
 
 const DBSchemas = {
-    UserSchema
+    UserSchema,
+    TokenSchema
 }
 
 module.exports = DBSchemas
