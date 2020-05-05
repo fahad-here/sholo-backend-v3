@@ -3,7 +3,7 @@ const JWT = require('jsonwebtoken')
 const { ExtractJwt } = require('passport-jwt')
 const PassportJwt = require('passport-jwt')
 const moment = require('moment')
-const { DBSchemas } = require('../db')
+const { DBSchemas } = require('../../db')
 const { UserSchema, TokenSchema } = DBSchemas
 const {
     JWT_SECRET,
@@ -12,9 +12,9 @@ const {
     JWT_REFRESH_SECRET,
     JWT_REFRESH_ALGORITHM,
     JWT_REFRESH_EXPIRES_IN
-} = require('../../config')
+} = require('../../../config')
 
-const { ResponseMessage } = require('../../utils')
+const { ResponseMessage } = require('../../../utils')
 
 passport.use(UserSchema.createStrategy())
 
@@ -50,8 +50,12 @@ passport.use(
             passReqToCallback: true
         },
         (req, payload, done) => {
-            const refToken = req.header("authorization")
-            TokenSchema.findOne({ _userId: payload.sub, token: refToken, type: 'refresh' })
+            const refToken = req.header('authorization')
+            TokenSchema.findOne({
+                _userId: payload.sub,
+                token: refToken,
+                type: 'refresh'
+            })
                 .then(async (refreshToken) => {
                     const user = await UserSchema.findById({ _id: payload.sub })
                     if (moment().isAfter(refreshToken.expireAt) || !user) {
