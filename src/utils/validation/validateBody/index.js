@@ -15,12 +15,10 @@ module.exports = (schema, options) => {
             next()
         } catch (e) {
             if (e.name === 'ValidationError')
-                return res
-                    .status(400)
-                    .json({
-                        error: true,
-                        message: 'The request body is incorrect.'
-                    })
+                return res.status(400).json({
+                    error: true,
+                    message: 'The request body is incorrect.'
+                })
             next(e)
         }
     }
