@@ -3,6 +3,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const http = require('http')
 const cors = require('cors')
+const { CORS_OPTIONS } = require('../config')
 const logger = require('morgan')
 
 const indexRouter = require('./routes/index')
@@ -18,17 +19,7 @@ app.use(logger('dev'))
 app.use(express.json())
 app.use(bodyParser.urlencoded({ extended: false }))
 
-app.use(
-    cors({
-        origin: (origin, callback) => {
-            if (['http://localhost:3000'].indexOf(origin) !== -1) {
-                callback(null, true)
-            } else {
-                callback(new Error('Not allowed by CORS'))
-            }
-        }
-    })
-)
+app.use(cors(CORS_OPTIONS))
 
 app.use('/api/v3', indexRouter)
 
