@@ -3,11 +3,11 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const http = require('http')
 const cors = require('cors')
-const { CORS_OPTIONS } = require('../config')
+const {CORS_OPTIONS} = require('../config')
 const logger = require('morgan')
-const {DBConnect} =require('./db')
+const {DBConnect} = require('./db')
 const indexRouter = require('./routes/index')
-const {Logger} =require('../utils')
+const {Logger, RouteErrorHandler} = require('../utils')
 
 const app = express()
 
@@ -18,7 +18,7 @@ app.set('view engine', 'ejs')
 
 app.use(logger('dev'))
 app.use(express.json())
-app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.urlencoded({extended: false}))
 
 app.use(cors(CORS_OPTIONS))
 
@@ -32,15 +32,7 @@ app.use(function (req, res, next) {
 })
 
 // error handler
-app.use(function (err, req, res) {
-    // set locals, only providing error in development
-    res.locals.message = err.message
-    res.locals.error = req.app.get('env') === 'development' ? err : {}
-
-    // render the error page
-    res.status(err.status || 500)
-    res.render('error')
-})
+app.use(RouteErrorHandler)
 
 app.set('port', PORT)
 let server = http.createServer(app)
