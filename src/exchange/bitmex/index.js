@@ -1,8 +1,10 @@
-import { BaseExchange } from '../base'
+const BaseExchange = require('../base')
 
-export class Bitmex extends BaseExchange {
+class Bitmex extends BaseExchange {
     constructor(options) {
         const id = 'bitmex'
         super(id, options)
     }
 }
+
+module.exports = Bitmex

@@ -1,10 +1,8 @@
 const ccxt = require('ccxt')
-
-export class BaseExchange {
-
-    constructor(id, options = {enableRateLimit: true}) {
+class BaseExchange {
+    constructor(id, options = { enableRateLimit: true }) {
         if (!ccxt.exchanges.includes(id))
-            throw new Error("Exchange does not exist")
+            throw new Error('Exchange does not exist')
         this.id = id
         this.exchange = new ccxt[id](options)
     }
@@ -17,14 +15,33 @@ export class BaseExchange {
         return this.exchange.fetchOrderBook(symbol, limit)
     }
 
-    getOhlc(symbol, timeframe, since, limit = 100) {
-        return this.exchange.fetchOHLCV(symbol, timeframe, since, limit)
+    getOhlc(
+        symbol,
+        timeframe,
+        since = undefined,
+        limit = undefined,
+        params = {}
+    ) {
+        if (!this.exchange.has['fetchOHLCV'])
+            throw new Error('Exchange does not OHLCV through ccxt')
+        if (!this.exchange.timeframes[timeframe])
+            throw new Error('Exchange does not support this timeframe')
+        return this.exchange.fetchOHLCV(symbol, timeframe, since, limit, params)
     }
 
-    getFetchBalance(){
-        if(!this.exchange.has['fetchBalance'])
-            throw new Error("Exchange does not support balances through ccxt")
+    getFetchBalance() {
+        if (!this.exchange.has['fetchBalance'])
+            throw new Error('Exchange does not support balances through ccxt')
         return this.exchange.fetchBalance()
     }
 
+    getAvailableTimeframes() {
+        return this.exchange.timeframes
+    }
+
+    getExchange() {
+        return this.exchange
+    }
 }
+
+module.exports = BaseExchange
