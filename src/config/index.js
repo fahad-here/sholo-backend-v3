@@ -8,7 +8,10 @@ const {
     JWT_ALGORITHM,
     JWT_REFRESH_SECRET,
     JWT_REFRESH_EXPIRES_IN,
-    JWT_REFRESH_ALGORITHM
+    JWT_REFRESH_ALGORITHM,
+    REDIS_HOST,
+    REDIS_PASSWORD,
+    REDIS_PORT
 } = process.env
 
 const whitelist = ['http://localhost:3000']
@@ -32,5 +35,8 @@ module.exports = {
     JWT_ALGORITHM,
     JWT_REFRESH_SECRET,
     JWT_REFRESH_EXPIRES_IN,
-    JWT_REFRESH_ALGORITHM
+    JWT_REFRESH_ALGORITHM,
+    REDIS_HOST,
+    REDIS_PASSWORD,
+    REDIS_PORT
 }
