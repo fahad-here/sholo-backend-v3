@@ -1,4 +1,5 @@
 const ccxt = require('ccxt')
+
 class BaseExchange {
     constructor(id, options = { enableRateLimit: true }) {
         if (!ccxt.exchanges.includes(id))
@@ -9,6 +10,11 @@ class BaseExchange {
 
     getMarkets() {
         return this.exchange.loadMarkets()
+    }
+
+    getSymbols() {
+        if (this.exchange.symbols) return this.exchange.symbols
+        else throw new Error('Please load markets before accessing symbols')
     }
 
     getOrderbook(symbol, limit = 25) {
