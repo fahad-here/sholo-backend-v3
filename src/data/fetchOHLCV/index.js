@@ -4,8 +4,9 @@ const RedisClient = require('../redis')
 const { promisify } = require('util')
 
 class FetchOHLCV {
-    constructor(exchange) {
+    constructor(exchange, test = false) {
         this.exchange = exchange
+        this.test = test
         this.candles = []
         this.cachedCandles = []
         this.cachedCandleTimeFrames = []
@@ -132,7 +133,7 @@ class FetchOHLCV {
         const requiredFromMS = fromMS
         const requiredToMS = toMS
         const getAsync = promisify(RedisClient.get).bind(RedisClient)
-        const candleKey = GetCandleKey(this.exchange.id, symbol, timeFrame)
+        const candleKey = this._getTestNotTestCandleKey(symbol, timeFrame)
         Logger.info('Candle Key: ' + candleKey)
         //await RedisClient.del(candleKey)
         const cachedStringifiedCandles = await getAsync(candleKey)
@@ -270,7 +271,7 @@ class FetchOHLCV {
         const requiredFromMS = fromMS
         const requiredToMS = toMS
         const getAsync = promisify(RedisClient.get).bind(RedisClient)
-        const candleKey = GetCandleKey(this.exchange.id, symbol, timeFrame)
+        const candleKey = this._getTestNotTestCandleKey(symbol, timeFrame)
         Logger.info('Candle Key: ' + candleKey)
         await RedisClient.del(candleKey)
         const cachedStringifiedCandles = await getAsync(candleKey)
@@ -448,8 +449,14 @@ class FetchOHLCV {
         }
     }
 
+    _getTestNotTestCandleKey(symbol, timeFrame) {
+        return this.test
+            ? 'test__' + GetCandleKey(this.exchange.id, symbol, timeFrame)
+            : GetCandleKey(this.exchange.id, symbol, timeFrame)
+    }
+
     _clearCache(symbol, timeFrame) {
-        const candleKey = GetCandleKey(this.exchange.id, symbol, timeFrame)
+        const candleKey = this._getTestNotTestCandleKey(symbol, timeFrame)
         Logger.info('Candle Key: ' + candleKey)
         RedisClient.del(candleKey)
     }
