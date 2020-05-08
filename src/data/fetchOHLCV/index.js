@@ -63,16 +63,23 @@ class FetchOHLCV {
         toMS,
         exchangeParams
     ) {
+        let fetchedTimeStamps = []
         let unit = timeFrame[timeFrame.length - 1]
         let time = parseInt(timeFrame.slice(0, timeFrame.indexOf(unit)))
         toMS = toMS + moment.duration(time, unit).asMilliseconds()
         let firstCandleTime = fromMS
         let totalNumberOfCandles =
             (toMS - fromMS) / moment.duration(time, unit).asMilliseconds()
+        Logger.info('To Fetch From MS: ' + fromMS)
+        Logger.info('To Fetch To MS: ' + toMS)
+        Logger.info('To Fetch Number of candles: ' + totalNumberOfCandles)
         let maxCandles =
             totalNumberOfCandles >= 1000 ? 1000 : totalNumberOfCandles
         let candlesLeftToFetch = totalNumberOfCandles
+
         while (candlesLeftToFetch > 0) {
+            Logger.info('Max candles: ' + maxCandles)
+            Logger.info('Candles left to fetch: ' + candlesLeftToFetch)
             let fetchedCandles = await this.exchange.getOhlc(
                 symbol,
                 timeFrame,
@@ -80,10 +87,10 @@ class FetchOHLCV {
                 maxCandles,
                 exchangeParams
             )
-            console.log('fetched', fetchedCandles)
-            Object.keys(fetchedCandles).map((index) =>
-                this._checkCandleExistsAndAdd(fetchedCandles[index])
-            )
+            fetchedCandles.map((currentCandle) => {
+                fetchedTimeStamps = [...fetchedTimeStamps, currentCandle[0]]
+                this._checkCandleExistsAndAdd(currentCandle)
+            })
             firstCandleTime =
                 fetchedCandles[maxCandles - 1][0] +
                 moment.duration(time, unit).asMilliseconds()
@@ -91,11 +98,13 @@ class FetchOHLCV {
             maxCandles =
                 candlesLeftToFetch <= 1000 ? candlesLeftToFetch : maxCandles
         }
-        this.cachedCandles = this._sortCandlesByTimeFrame(this.cachedCandles)
+        Logger.info(
+            'Fetched candle time stamps: ' + JSON.stringify(fetchedTimeStamps)
+        )
+        this.cachedCandles = this.cachedCandles.sort((a, b) => a[0] - b[0])
         this.cachedCandleTimeFrames = this.cachedCandleTimeFrames.sort(
             (a, b) => a - b
         )
-        console.log('cached', this.cachedCandles)
         let stringifiedCandles = JSON.stringify(this.cachedCandles)
         RedisClient.set(candleKey, stringifiedCandles)
     }
@@ -113,7 +122,9 @@ class FetchOHLCV {
             fromMS += moment.duration(time, unit).asMilliseconds()
             requiredTimeStamps.push(fromMS)
         }
-        console.log('req', requiredTimeStamps)
+        Logger.info(
+            'Required Time stamps: ' + JSON.stringify(requiredTimeStamps)
+        )
         return requiredTimeStamps
     }
 
@@ -125,15 +136,12 @@ class FetchOHLCV {
         Logger.info('Candle Key: ' + candleKey)
         //await RedisClient.del(candleKey)
         const cachedStringifiedCandles = await getAsync(candleKey)
-        Logger.info('Cached String: ' + cachedStringifiedCandles)
+        //Logger.info('Cached String: ' + cachedStringifiedCandles)
 
         if (cachedStringifiedCandles) {
             this.cachedCandles = JSON.parse(cachedStringifiedCandles)
             this.cachedCandles.map((candle) =>
                 this.cachedCandleTimeFrames.push(candle[0])
-            )
-            Logger.info(
-                'Pre Fetch, Cached Candles: ' + cachedStringifiedCandles
             )
             Logger.info(
                 'Pre Fetch, Cached Candles TimeFrames: ' +
@@ -144,7 +152,10 @@ class FetchOHLCV {
                 fromMS,
                 toMS
             )
-            console.log(this.requiredTimeFrames)
+            Logger.info(
+                'Required Time frames after adding manually: ' +
+                    JSON.stringify(this.requiredTimeFrames)
+            )
             if (this.requiredTimeFrames.length > 0) {
                 const toFetchCandleTimestamps = []
                 this.requiredTimeFrames.map((requiredTimeFrame) => {
@@ -155,6 +166,10 @@ class FetchOHLCV {
                     )
                         toFetchCandleTimestamps.push(requiredTimeFrame)
                 })
+                Logger.info(
+                    'To Fetch Time frames after adding manually: ' +
+                        JSON.stringify(toFetchCandleTimestamps)
+                )
                 const notEqualIndex = []
                 toFetchCandleTimestamps.map((currentTimeStamp, index) => {
                     if (index !== toFetchCandleTimestamps.length - 1) {
@@ -170,6 +185,9 @@ class FetchOHLCV {
                             notEqualIndex.push(index + 1)
                     }
                 })
+                Logger.info(
+                    'Not Equal Indexes ' + JSON.stringify(notEqualIndex)
+                )
                 let toFetchArray = []
                 if (notEqualIndex.length > 0) {
                     toFetchArray.push(
@@ -185,10 +203,15 @@ class FetchOHLCV {
                             )
                         else
                             toFetchArray.push(
-                                toFetchCandleTimestamps.slice(i, i + 1)
+                                toFetchCandleTimestamps.slice(
+                                    notEqualIndex[i],
+                                    notEqualIndex[i + 1]
+                                )
                             )
                     }
                 } else toFetchArray.push(toFetchCandleTimestamps)
+                Logger.info('To Fetch Array ' + JSON.stringify(toFetchArray))
+
                 for (let i = 0; i < toFetchArray.length; i++)
                     await this._fetchAndCacheCandles(
                         candleKey,
@@ -208,7 +231,8 @@ class FetchOHLCV {
                 this.cachedCandleTimeFrames.indexOf(requiredToMS) + 1
             )
             Logger.info(
-                'Post Fetch, returned candles: ' + JSON.stringify(this.candles)
+                'Post Fetch, cached time stamps: ' +
+                    JSON.stringify(this.cachedCandleTimeFrames)
             )
             Logger.info(
                 'Post Fetch, returned timeStamps: ' + JSON.stringify(slicedTime)
@@ -228,10 +252,7 @@ class FetchOHLCV {
                 this.cachedCandleTimeFrames.indexOf(requiredFromMS),
                 this.cachedCandleTimeFrames.indexOf(requiredToMS) + 1
             )
-            Logger.info(
-                'Post Fetch, returned candles: ' +
-                    JSON.stringify(this.cachedCandles)
-            )
+
             Logger.info(
                 'Post Fetch, returned timeStamps: ' + JSON.stringify(slicedTime)
             )
@@ -425,6 +446,12 @@ class FetchOHLCV {
             )
             return this.cachedCandles
         }
+    }
+
+    _clearCache(symbol, timeFrame) {
+        const candleKey = GetCandleKey(this.exchange.id, symbol, timeFrame)
+        Logger.info('Candle Key: ' + candleKey)
+        RedisClient.del(candleKey)
     }
 }
 
