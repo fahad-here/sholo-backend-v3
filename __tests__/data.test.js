@@ -1,12 +1,13 @@
 const chai = require('chai')
 const { Binance } = require('../src/exchange')
 const { FetchOHLCV } = require('../src/data')
+const { RoundDate } = require('../src/utils')
 const moment = require('moment')
 
 const expect = chai.expect
 
 const SYMBOL = 'BTC/USDT'
-const TIMEFRAME = '1m'
+const TIMEFRAME = '5m'
 
 const unit = TIMEFRAME[TIMEFRAME.length - 1]
 const time = parseInt(TIMEFRAME.slice(0, TIMEFRAME.indexOf(unit)))
@@ -17,8 +18,10 @@ const fetchCandles = async (exchange, fromDate, toDate) => {
 }
 
 const getRequiredCandlesLength = (fromDate, toDate) =>
-    (moment(toDate).valueOf() -
-        moment(fromDate).valueOf() +
+    (moment(RoundDate(toDate, moment.duration(time, unit), 'floor')).valueOf() -
+        moment(
+            RoundDate(fromDate, moment.duration(time, unit), 'floor')
+        ).valueOf() +
         moment.duration(time, unit).asMilliseconds()) /
     moment.duration(time, unit).asMilliseconds()
 
@@ -42,7 +45,7 @@ describe('Fetching And Caching', async () => {
                 let totalCandles = []
                 let requiredTimeStamps = 0
                 for (let x = 10; x <= 50; x += 10) {
-                    let fromDate = new Date(`October 30, 2019 11:${x}:00`)
+                    let fromDate = new Date(`October 29, 2019 11:${x}:00`)
                     let toDate = new Date(`October 30, 2019 11:${y}:00`)
                     requiredTimeStamps =
                         requiredTimeStamps +
@@ -71,7 +74,7 @@ describe('Fetching And Caching', async () => {
         ;(async () => {
             try {
                 let requiredTimeStamps
-                let fromDate2 = new Date(`October 30, 2019 11:22:00`)
+                let fromDate2 = new Date(`October 29, 2019 11:22:00`)
                 let toDate2 = new Date(`October 30, 2019 11:42:00`)
                 requiredTimeStamps = getRequiredCandlesLength(
                     fromDate2,
@@ -95,7 +98,7 @@ describe('Fetching And Caching', async () => {
             ;(async () => {
                 try {
                     let requiredTimeStamps
-                    let fromDate3 = new Date(`October 30, 2019 11:05:00`)
+                    let fromDate3 = new Date(`October 29, 2019 11:05:00`)
                     let toDate3 = new Date(`October 30, 2019 11:32:00`)
                     requiredTimeStamps = getRequiredCandlesLength(
                         fromDate3,
@@ -124,7 +127,7 @@ describe('Fetching And Caching', async () => {
             ;(async () => {
                 try {
                     let requiredTimeStamps
-                    let fromDate4 = new Date(`October 30, 2019 11:34:00`)
+                    let fromDate4 = new Date(`October 29, 2019 11:34:00`)
                     let toDate4 = new Date(`October 30, 2019 12:00:00`)
                     requiredTimeStamps = getRequiredCandlesLength(
                         fromDate4,

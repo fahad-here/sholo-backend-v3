@@ -1,5 +1,5 @@
 const moment = require('moment')
-const { GetCandleKey } = require('../../utils')
+const { GetCandleKey, RoundDate } = require('../../utils')
 const RedisClient = require('../redis')
 const { promisify } = require('util')
 
@@ -21,12 +21,12 @@ class FetchOHLCV {
     ) {
         let unit = timeFrame[timeFrame.length - 1]
         let time = parseInt(timeFrame.slice(0, timeFrame.indexOf(unit)))
-        let fromMS = this._roundDate(
+        let fromMS = RoundDate(
             fromDateTime,
             moment.duration(time, unit),
             'floor'
         ).valueOf()
-        let toMS = this._roundDate(
+        let toMS = RoundDate(
             toDateTime,
             moment.duration(time, unit),
             'floor'
@@ -96,10 +96,6 @@ class FetchOHLCV {
         )
         let stringifiedCandles = JSON.stringify(this.cachedCandles)
         RedisClient.set(candleKey, stringifiedCandles)
-    }
-
-    _roundDate(date, duration, method) {
-        return moment(Math[method](+date / +duration) * +duration)
     }
 
     _setRequiredTimestamps(timeFrame, fromMS, toMS) {
