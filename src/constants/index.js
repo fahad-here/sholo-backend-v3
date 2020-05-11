@@ -36,6 +36,20 @@ const ALLOWED_EXCHANGES = {
     [BINANCE_EXCHANGE]: BINANCE_EXCHANGE
 }
 
+const ALLOWED_TIME_FRAMES = [
+    '1m',
+    '5m',
+    '15m',
+    '30m',
+    '1h',
+    '4h',
+    '6h',
+    '12h',
+    '1d',
+    '1w',
+    '1M'
+]
+
 const POSITION_LONG = 'long'
 const POSITION_SHORT = 'short'
 
@@ -46,5 +60,6 @@ module.exports = {
     BITMEX_EXCHANGE,
     BINANCE_EXCHANGE,
     POSITION_LONG,
-    POSITION_SHORT
+    POSITION_SHORT,
+    ALLOWED_TIME_FRAMES
 }
