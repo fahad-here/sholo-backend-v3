@@ -8,6 +8,7 @@
     "test": "mocha \"./__tests__/**/*.js\""
   },
   "dependencies": {
+    "bignumber.js": "^9.0.0",
     "body-parser": "latest",
     "ccxt": "^1.27.30",
     "cookie-parser": "~1.4.4",
