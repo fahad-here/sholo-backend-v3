@@ -1,35 +1,25 @@
 const BigNumber = require('bignumber.js')
+
 const { Logger } = require('../utils')
 const { Binance, Bitmex } = require('../exchange')
 const { FetchOHLCV } = require('../data')
+const {
+    CANDLE_POSITIONS,
+    ALLOWED_EXCHANGES,
+    FEES,
+    BINANCE_EXCHANGE,
+    BITMEX_EXCHANGE,
+    POSITION_LONG,
+    POSITION_SHORT
+} = require('../constants')
+const { TIME_FRAME, OPEN, HIGH, LOW, CLOSE } = CANDLE_POSITIONS
 
 const BOT_SHORT_1 = 's1'
 const BOT_LONG_1 = 'l1'
 
-const CANDLE_TIME_FRAME_POSITION = 0
-const CANDLE_OPEN_POSITION = 1
-const CANDLE_HIGH_POSITION = 2
-const CANDLE_LOW_POSITION = 3
-const CANDLE_CLOSE_POSITION = 4
-const CANDLE_VOLUME_POSITION = 5
-
 const bots = {
     [BOT_SHORT_1]: {},
     [BOT_LONG_1]: {}
-}
-
-const FEE_TYPE_MAKER = 0
-const FEE_TYPE_TAKER = 1
-const FEE_TYPE_FIFTY_FIFTY = 2
-
-const FEE_MAKER = -0.025
-const FEE_TAKER = 0.075
-const FEE_FIFTY_FIFTY = 0.05
-
-const fees = {
-    [FEE_TYPE_MAKER]: FEE_MAKER,
-    [FEE_TYPE_TAKER]: FEE_TAKER,
-    [FEE_TYPE_FIFTY_FIFTY]: FEE_FIFTY_FIFTY
 }
 
 const stats = {
@@ -42,11 +32,6 @@ const stats = {
     totalUsdPnlPercent: null,
     totalBtcPnlPercent: null
 }
-
-const POSITION_LONG = 'long'
-const POSITION_SHORT = 'short'
-
-const allowedExchangeNames = ['bitmex', 'binance']
 
 const _getBotInstance = (balance, direction, priceP) => {
     return {
@@ -69,13 +54,13 @@ class Simulator {
         fromDateTime,
         toDateTime
     ) {
-        if (allowedExchangeNames.indexOf(exchangeName) === -1)
+        if (!ALLOWED_EXCHANGES[exchangeName])
             throw new Error(`${exchangeName} is not yet supported`)
         switch (exchangeName) {
-            case allowedExchangeNames[0]:
+            case BITMEX_EXCHANGE:
                 this.exchange = new Bitmex(exchangeParams)
                 break
-            case allowedExchangeNames[1]:
+            case BINANCE_EXCHANGE:
                 this.exchange = new Binance(exchangeParams)
                 break
         }
@@ -216,7 +201,7 @@ class Simulator {
     }
 
     _addBotPosition(bot, price, candle, time) {
-        const feePercent = fees[this.feeType]
+        const feePercent = FEES[this.feeType]
         // Balance available for trades
         if (parseFloat(this.bots[bot].balance) > 0) {
             const txFees = new BigNumber(this.bots[bot].balance)
@@ -224,7 +209,7 @@ class Simulator {
                 .dividedBy(100)
                 .toFixed(8)
             const txFeesUsd = new BigNumber(txFees)
-                .multipliedBy(candle[CANDLE_OPEN_POSITION])
+                .multipliedBy(candle[OPEN])
                 .toFixed(8)
             const amount = new BigNumber(this.bots[bot].balance)
                 .minus(txFees)
@@ -262,7 +247,7 @@ class Simulator {
                 .dividedBy(100)
                 .toFixed(8)
             const txFeesUsd = new BigNumber(txFees)
-                .multipliedBy(candle[CANDLE_OPEN_POSITION])
+                .multipliedBy(candle[OPEN])
                 .toFixed(8)
             amount = new BigNumber(amount).minus(txFees).toFixed(8)
             this.bots[bot].positions.push(
@@ -294,12 +279,12 @@ class Simulator {
                 //needs to exit
                 if (
                     isLongBot &&
-                    new BigNumber(
-                        candle[CANDLE_LOW_POSITION]
-                    ).isLessThanOrEqualTo(priceP + this.priceA) &&
-                    new BigNumber(
-                        candle[CANDLE_HIGH_POSITION]
-                    ).isGreaterThanOrEqualTo(priceP + this.priceA)
+                    new BigNumber(candle[LOW]).isLessThanOrEqualTo(
+                        priceP + this.priceA
+                    ) &&
+                    new BigNumber(candle[HIGH]).isGreaterThanOrEqualTo(
+                        priceP + this.priceA
+                    )
                 ) {
                     this._addBotPosition(
                         bot,
@@ -310,12 +295,12 @@ class Simulator {
                     this.bots[bot].priceP += this.priceA
                 } else if (
                     !isLongBot &&
-                    new BigNumber(
-                        candle[CANDLE_LOW_POSITION]
-                    ).isLessThanOrEqualTo(priceP - this.priceA) &&
-                    new BigNumber(
-                        candle[CANDLE_HIGH_POSITION]
-                    ).isGreaterThanOrEqualTo(priceP - this.priceA)
+                    new BigNumber(candle[LOW]).isLessThanOrEqualTo(
+                        priceP - this.priceA
+                    ) &&
+                    new BigNumber(candle[HIGH]).isGreaterThanOrEqualTo(
+                        priceP - this.priceA
+                    )
                 ) {
                     this._addBotPosition(
                         bot,
@@ -329,12 +314,12 @@ class Simulator {
                 if (currentPosition) {
                     if (isLongBot) {
                         if (
-                            new BigNumber(
-                                candle[CANDLE_LOW_POSITION]
-                            ).isLessThanOrEqualTo(priceP - this.priceB) &&
-                            new BigNumber(
-                                candle[CANDLE_HIGH_POSITION]
-                            ).isGreaterThanOrEqualTo(priceP - this.priceB)
+                            new BigNumber(candle[LOW]).isLessThanOrEqualTo(
+                                priceP - this.priceB
+                            ) &&
+                            new BigNumber(candle[HIGH]).isGreaterThanOrEqualTo(
+                                priceP - this.priceB
+                            )
                         ) {
                             this._addBotPosition(
                                 bot,
@@ -344,12 +329,12 @@ class Simulator {
                             )
                             this.bots[bot].priceP -= this.priceB
                         } else if (
-                            new BigNumber(
-                                candle[CANDLE_LOW_POSITION]
-                            ).isLessThanOrEqualTo(priceP + this.priceR) &&
-                            new BigNumber(
-                                candle[CANDLE_HIGH_POSITION]
-                            ).isGreaterThanOrEqualTo(priceP + this.priceR)
+                            new BigNumber(candle[LOW]).isLessThanOrEqualTo(
+                                priceP + this.priceR
+                            ) &&
+                            new BigNumber(candle[HIGH]).isGreaterThanOrEqualTo(
+                                priceP + this.priceR
+                            )
                         ) {
                             this._addBotPosition(
                                 bot,
@@ -367,12 +352,12 @@ class Simulator {
                         }
                     } else {
                         if (
-                            new BigNumber(
-                                candle[CANDLE_LOW_POSITION]
-                            ).isLessThanOrEqualTo(priceP + this.priceB) &&
-                            new BigNumber(
-                                candle[CANDLE_HIGH_POSITION]
-                            ).isGreaterThanOrEqualTo(priceP + this.priceB)
+                            new BigNumber(candle[LOW]).isLessThanOrEqualTo(
+                                priceP + this.priceB
+                            ) &&
+                            new BigNumber(candle[HIGH]).isGreaterThanOrEqualTo(
+                                priceP + this.priceB
+                            )
                         ) {
                             this._addBotPosition(
                                 bot,
@@ -382,12 +367,12 @@ class Simulator {
                             )
                             this.bots[bot].priceP += this.priceB
                         } else if (
-                            new BigNumber(
-                                candle[CANDLE_LOW_POSITION]
-                            ).isLessThanOrEqualTo(priceP - this.priceR) &&
-                            new BigNumber(
-                                candle[CANDLE_HIGH_POSITION]
-                            ).isGreaterThanOrEqualTo(priceP - this.priceR)
+                            new BigNumber(candle[LOW]).isLessThanOrEqualTo(
+                                priceP - this.priceR
+                            ) &&
+                            new BigNumber(candle[HIGH]).isGreaterThanOrEqualTo(
+                                priceP - this.priceR
+                            )
                         ) {
                             this._addBotPosition(
                                 bot,
@@ -404,12 +389,12 @@ class Simulator {
                         }
                     }
                 } else if (
-                    new BigNumber(
-                        candle[CANDLE_LOW_POSITION]
-                    ).isLessThanOrEqualTo(this.entryPrice) &&
-                    new BigNumber(
-                        candle[CANDLE_HIGH_POSITION]
-                    ).isGreaterThanOrEqualTo(this.entryPrice)
+                    new BigNumber(candle[LOW]).isLessThanOrEqualTo(
+                        this.entryPrice
+                    ) &&
+                    new BigNumber(candle[HIGH]).isGreaterThanOrEqualTo(
+                        this.entryPrice
+                    )
                 )
                     this._addBotPosition(bot, this.entryPrice, candle, time)
             }
@@ -431,7 +416,7 @@ class Simulator {
                           this.bots[bot].positions[
                               this.bots[bot].positions.length - 1
                           ].amount,
-                          lastCandle[CANDLE_CLOSE_POSITION]
+                          lastCandle[CLOSE]
                       )
             this.bots[bot].positions.map((position) => {
                 totalFeesBtcPaid = new BigNumber(totalFeesBtcPaid)
@@ -447,7 +432,7 @@ class Simulator {
         }
         this.stats.totalEndingBtcBalance = totalEndingBtcBalance
         this.stats.totalEndingUsdBalance = new BigNumber(totalEndingBtcBalance)
-            .multipliedBy(lastCandle[CANDLE_CLOSE_POSITION])
+            .multipliedBy(lastCandle[CLOSE])
             .toFixed(4)
         this.stats.totalBtcPnl = new BigNumber(this.stats.totalEndingBtcBalance)
             .minus(this.stats.totalInitialBtcBalance)
@@ -476,14 +461,12 @@ class Simulator {
                     this.stats.totalInitialUsdBalance = new BigNumber(
                         this.stats.totalInitialBtcBalance
                     )
-                        .multipliedBy(candle[CANDLE_OPEN_POSITION])
+                        .multipliedBy(candle[OPEN])
                         .toFixed(4)
                 }
             }
             iterator++
-            const time = new Date(
-                candle[CANDLE_TIME_FRAME_POSITION]
-            ).toUTCString()
+            const time = new Date(candle[TIME_FRAME]).toUTCString()
             for (let bot of Object.keys(bots)) {
                 this._enterPositionIfNeeded(bot, candle, time)
             }
