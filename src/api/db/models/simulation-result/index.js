@@ -30,6 +30,7 @@ const SimulationResultSchema = new mongoose.Schema({
     totalBtcPnlPercent: { type: String, required: true },
     totalFeesBtcPaid: { type: String, required: true },
     totalFeesUsdPaid: { type: String, required: true },
+    intervenedCandle: { type: Object, default: null },
     createdAt: {
         type: Date,
         required: true,

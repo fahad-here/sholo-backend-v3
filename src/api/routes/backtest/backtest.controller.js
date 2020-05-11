@@ -3,7 +3,7 @@ const backTestController = express.Router()
 const { AuthMiddleware, BackTestMiddleware } = require('../../middleware')
 const { Validation } = require('../../../utils')
 const { ValidateBody, Schemas } = Validation
-const { AddBackTestConfig } = Schemas
+const { AddBackTestConfig, RunSimulation } = Schemas
 
 backTestController.get(
     '/',
@@ -34,6 +34,7 @@ backTestController.delete(
 backTestController.post(
     '/:id/run',
     AuthMiddleware.requireJWT,
+    ValidateBody(RunSimulation),
     BackTestMiddleware.runBackTestConfig
 )
 
@@ -46,13 +47,13 @@ backTestController.get(
 backTestController.get(
     '/results',
     AuthMiddleware.requireJWT,
-    BackTestMiddleware.getBackTestResult
+    BackTestMiddleware.getAllBackTestResults
 )
 
 backTestController.get(
     '/results/:id',
     AuthMiddleware.requireJWT,
-    BackTestMiddleware.getAllBackTestResults
+    BackTestMiddleware.getBackTestResult
 )
 
 module.exports = backTestController
