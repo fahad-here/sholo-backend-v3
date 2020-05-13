@@ -19,9 +19,10 @@ const { ResponseMessage } = require('../../../utils')
 passport.use(UserSchema.createStrategy())
 
 function register(req, res, next) {
-    const user = new User({
+    const user = new UserSchema({
         email: req.body.email,
-        name: req.body.name
+        name: req.body.name,
+        username: req.body.username
     })
     // Create the user with the specified password
     UserSchema.register(user, req.body.password, async (error, user) => {
@@ -50,6 +51,7 @@ passport.use(
             passReqToCallback: true
         },
         (req, payload, done) => {
+            console.log('refresh access')
             const refToken = req.header('authorization')
             TokenSchema.findOne({
                 _userId: payload.sub,
@@ -76,6 +78,7 @@ passport.use(
 )
 
 passport.use(
+    'jwt',
     new PassportJwt.Strategy(
         // Options
         {
@@ -128,7 +131,7 @@ async function signRefreshTokenForUser(req, res, next) {
         await new TokenSchema({
             _userId: user._id,
             token: refreshToken,
-            expireAt: Date.now() + JWT_REFRESH_EXPIRES_IN,
+            expireAt: Date.now() + parseInt(JWT_REFRESH_EXPIRES_IN),
             type: 'refresh'
         }).save()
         req.refreshToken = refreshToken

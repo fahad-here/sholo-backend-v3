@@ -24,7 +24,7 @@ app.use(cors(CORS_OPTIONS))
 
 DBConnect()
 
-app.use('/api/v3', indexRouter)
+app.use('/api', indexRouter)
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
