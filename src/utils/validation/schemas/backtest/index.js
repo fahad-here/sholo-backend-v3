@@ -1,7 +1,10 @@
 const Joi = require('joi')
 
 module.exports = Joi.object().keys({
-    startingBalances: Joi.string().valid('name', 'email').required(),
+    startingBalances: Joi.object().keys({
+        s1: Joi.number().required(),
+        l1: Joi.number().required()
+    }),
     entryPrice: Joi.number().min(1).required(),
     priceA: Joi.number().min(1).required(),
     priceB: Joi.number().min(1).required(),
