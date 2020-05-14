@@ -21,8 +21,7 @@ passport.use(UserSchema.createStrategy())
 function register(req, res, next) {
     const user = new UserSchema({
         email: req.body.email,
-        name: req.body.name,
-        username: req.body.username
+        name: req.body.name
     })
     // Create the user with the specified password
     UserSchema.register(user, req.body.password, async (error, user) => {

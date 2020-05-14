@@ -4,7 +4,7 @@ const passportLocalMongoose = require('passport-local-mongoose')
 const findOrCreate = require('mongoose-findorcreate')
 
 const UserSchema = new Schema({
-    username: {
+    name: {
         type: String,
         required: true
     },
