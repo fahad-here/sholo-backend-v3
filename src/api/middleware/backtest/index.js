@@ -2,7 +2,7 @@ const { DBSchemas } = require('../../db/index')
 const { BackTestConfigSchema, SimulationResultSchema } = DBSchemas
 const { ResponseMessage } = require('../../../utils')
 const Simulator = require('../../../simulator')
-
+const moment = require('moment')
 async function addNewBackTest(req, res, next) {
     try {
         const user = req.user
@@ -75,7 +75,9 @@ async function editBackTest(req, res, next) {
             { new: true }
         )
         return res.json(
-            ResponseMessage(false, 'Edited back test config successfully', { backTestConfig: editBackTest })
+            ResponseMessage(false, 'Edited back test config successfully', {
+                backTestConfig: editBackTest
+            })
         )
     } catch (e) {
         return next(e)
@@ -124,7 +126,8 @@ async function getBackTestConfig(req, res, next) {
 
 async function runBackTestConfig(req, res, next) {
     try {
-        const { exchange, symbol, startDate, endDate, timeFrame } = req.body
+        const { exchange, symbol, startTime, endTime, timeFrame } = req.body
+        console.log(exchange, symbol, startTime, endTime, timeFrame)
         const id = req.params.id
         const user = req.user
         if (!id)
@@ -160,8 +163,8 @@ async function runBackTestConfig(req, res, next) {
             {},
             symbol,
             timeFrame,
-            startDate,
-            endDate
+            moment(startTime),
+            moment(endTime)
         )
         simulator.setBotParams(
             startingBalances,
@@ -175,7 +178,7 @@ async function runBackTestConfig(req, res, next) {
         )
         const { bots, stats, notify } = await simulator.simulate()
         const simulationResult = await new SimulationResultSchema({
-            _backTestConfigId: id,
+            _backTestId: id,
             _userId: user._id,
             intervenedCandle: notify,
             bots,
@@ -183,9 +186,9 @@ async function runBackTestConfig(req, res, next) {
             exchange,
             timeFrame,
             symbol,
-            startDate,
-            endDate
-        })
+            startTime,
+            endTime
+        }).save()
         res.json(
             ResponseMessage(false, 'Ran simulation successfully', {
                 simulationResult

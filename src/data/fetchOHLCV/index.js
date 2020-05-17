@@ -122,7 +122,6 @@ class FetchOHLCV {
         const getAsync = promisify(RedisClient.get).bind(RedisClient)
         const candleKey = this._getTestNotTestCandleKey(symbol, timeFrame)
         const cachedStringifiedCandles = await getAsync(candleKey)
-
         if (cachedStringifiedCandles) {
             this.cachedCandles = JSON.parse(cachedStringifiedCandles)
             this.cachedCandles.map((candle) =>

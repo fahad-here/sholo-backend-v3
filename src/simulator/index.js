@@ -54,7 +54,7 @@ class Simulator {
         fromDateTime,
         toDateTime
     ) {
-        if (ALLOWED_EXCHANGES.indexOf(exchangeName) !== -1)
+        if (ALLOWED_EXCHANGES.indexOf(exchangeName) === -1)
             throw new Error(`${exchangeName} is not yet supported`)
         switch (exchangeName) {
             case BITMEX_EXCHANGE:
