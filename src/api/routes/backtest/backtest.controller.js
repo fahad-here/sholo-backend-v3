@@ -39,12 +39,6 @@ backTestController.post(
 )
 
 backTestController.get(
-    '/:id',
-    AuthMiddleware.requireJWT,
-    BackTestMiddleware.getBackTestConfig
-)
-
-backTestController.get(
     '/results',
     AuthMiddleware.requireJWT,
     BackTestMiddleware.getAllBackTestResults
@@ -54,6 +48,12 @@ backTestController.get(
     '/results/:id',
     AuthMiddleware.requireJWT,
     BackTestMiddleware.getBackTestResult
+)
+
+backTestController.get(
+    '/:id',
+    AuthMiddleware.requireJWT,
+    BackTestMiddleware.getBackTestConfig
 )
 
 module.exports = backTestController
