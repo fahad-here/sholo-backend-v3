@@ -5,6 +5,7 @@ const Simulator = require('../../../simulator')
 
 async function addNewBackTest(req, res, next) {
     try {
+        const user = req.user
         const {
             startingBalances,
             entryPrice,
@@ -15,6 +16,7 @@ async function addNewBackTest(req, res, next) {
             feeType
         } = req.body
         const backTestConfig = await new BackTestConfigSchema({
+            _userId: user._id,
             startingBalances,
             entryPrice,
             priceA,
@@ -73,8 +75,7 @@ async function editBackTest(req, res, next) {
             { new: true }
         )
         return res.json(
-            ResponseMessage(false, 'Edited back test config successfully'),
-            { backTestConfig: editBackTest }
+            ResponseMessage(false, 'Edited back test config successfully', { backTestConfig: editBackTest })
         )
     } catch (e) {
         return next(e)
