@@ -77,3 +77,5 @@ build
 
 .idea
 /.prettierrc
+
+test.js
