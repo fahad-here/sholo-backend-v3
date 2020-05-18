@@ -1,0 +1,21 @@
+{
+  "apps": [
+    {
+      "name": "sholo-backend-v3",
+      "script": "./app.js",
+      "watch": false,
+      "max_restarts": 3,
+      "cwd": "/home/ec2-user/sholo-backend-v3/",
+      "args": "serve --single ./build",
+      "instances": "max",
+      "exec_mode": "cluster",
+      "log_date_format":"YYYY-MM-DD HH:mm Z",
+      "env": {
+        "NODE_ENV": "development"
+      },
+      "env_production": {
+        "NODE_ENV": "production"
+      }
+    }
+  ]
+}
