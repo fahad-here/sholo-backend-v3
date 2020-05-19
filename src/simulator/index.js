@@ -30,7 +30,10 @@ const stats = {
     totalUsdPnl: null,
     totalBtcPnl: null,
     totalUsdPnlPercent: null,
-    totalBtcPnlPercent: null
+    totalBtcPnlPercent: null,
+    initialCandlePrice: null,
+    finalCandlePrice: null,
+    positionCounter: 0
 }
 
 const _getBotInstance = (balance, direction, priceP) => {
@@ -328,6 +331,7 @@ class Simulator {
                                 time
                             )
                             this.bots[bot].priceP -= this.priceB
+                            this.stats.positionCounter++
                         } else if (
                             new BigNumber(candle[LOW]).isLessThanOrEqualTo(
                                 priceP + this.priceR
@@ -349,6 +353,7 @@ class Simulator {
                                 priceP: priceP,
                                 price: priceP + this.priceR
                             }
+                            this.stats.positionCounter++
                         }
                     } else {
                         if (
@@ -366,6 +371,7 @@ class Simulator {
                                 time
                             )
                             this.bots[bot].priceP += this.priceB
+                            this.stats.positionCounter++
                         } else if (
                             new BigNumber(candle[LOW]).isLessThanOrEqualTo(
                                 priceP - this.priceR
@@ -386,6 +392,7 @@ class Simulator {
                                 time,
                                 price: priceP - this.priceR
                             }
+                            this.stats.positionCounter++
                         }
                     }
                 } else if (
@@ -395,8 +402,10 @@ class Simulator {
                     new BigNumber(candle[HIGH]).isGreaterThanOrEqualTo(
                         this.entryPrice
                     )
-                )
+                ) {
                     this._addBotPosition(bot, this.entryPrice, candle, time)
+                    this.stats.positionCounter++
+                }
             }
     }
 
@@ -464,6 +473,7 @@ class Simulator {
                         .multipliedBy(candle[OPEN])
                         .toFixed(4)
                 }
+                this.stats.initialCandlePrice = candle[OPEN]
             }
             iterator++
             const time = new Date(candle[TIME_FRAME]).toUTCString()
@@ -472,6 +482,7 @@ class Simulator {
             }
             if (iterator === candles.length) {
                 this._calculateStats(candle)
+                this.stats.finalCandlePrice = candle[CLOSE]
             }
         }
         return {
