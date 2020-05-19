@@ -11,6 +11,10 @@ const SimulationResultSchema = new mongoose.Schema({
         ref: 'BackTestConfig',
         required: true
     },
+    _backTestSimpleId: {
+        type: Number,
+        required: true
+    },
     bots: { type: Object, required: true },
     exchange: {
         type: String,

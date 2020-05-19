@@ -127,7 +127,6 @@ async function getBackTestConfig(req, res, next) {
 async function runBackTestConfig(req, res, next) {
     try {
         const { exchange, symbol, startTime, endTime, timeFrame } = req.body
-        console.log(exchange, symbol, startTime, endTime, timeFrame)
         const id = req.params.id
         const user = req.user
         if (!id)
@@ -179,6 +178,7 @@ async function runBackTestConfig(req, res, next) {
         const { bots, stats, notify } = await simulator.simulate()
         const simulationResult = await new SimulationResultSchema({
             _backTestId: id,
+            _backTestSimpleId: backTestConfig.id,
             _userId: user._id,
             intervenedCandle: notify,
             bots,
@@ -278,5 +278,6 @@ module.exports = {
     deleteBackTestConfig,
     runBackTestConfig,
     getBackTestResult,
-    getAllBackTestResults
+    getAllBackTestResults,
+    test
 }
