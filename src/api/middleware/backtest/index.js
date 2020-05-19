@@ -278,6 +278,5 @@ module.exports = {
     deleteBackTestConfig,
     runBackTestConfig,
     getBackTestResult,
-    getAllBackTestResults,
-    test
+    getAllBackTestResults
 }
