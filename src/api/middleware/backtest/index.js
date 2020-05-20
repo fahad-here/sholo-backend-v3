@@ -3,6 +3,7 @@ const { BackTestConfigSchema, SimulationResultSchema } = DBSchemas
 const { ResponseMessage } = require('../../../utils')
 const Simulator = require('../../../simulator')
 const moment = require('moment')
+
 async function addNewBackTest(req, res, next) {
     try {
         const user = req.user
@@ -187,7 +188,10 @@ async function runBackTestConfig(req, res, next) {
             timeFrame,
             symbol,
             startTime,
-            endTime
+            endTime,
+            priceA,
+            priceB,
+            priceR
         }).save()
         res.json(
             ResponseMessage(false, 'Ran simulation successfully', {
