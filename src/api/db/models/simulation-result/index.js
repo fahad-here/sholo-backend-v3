@@ -38,6 +38,9 @@ const SimulationResultSchema = new mongoose.Schema({
     positionCounter: { type: Number, required: true },
     initialCandlePrice: { type: Number, required: true },
     finalCandlePrice: { type: Number, required: true },
+    priceA: { type: Number, required: true },
+    priceB: { type: Number, required: true },
+    priceR: { type: Number, required: true },
     createdAt: {
         type: Date,
         required: true,
