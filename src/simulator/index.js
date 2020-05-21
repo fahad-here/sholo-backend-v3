@@ -127,12 +127,14 @@ class Simulator {
         return totalBtcBalance
     }
 
-    _initializeAccounts(startingBalances) {
+    _initializeAccounts() {
         this.bots = { ...bots }
         Logger.info('Initializing accounts..')
         for (let _bot of Object.keys(this.bots)) {
             this.bots[_bot] = _getBotInstance(
-                parseFloat(startingBalances[_bot]).toFixed(8),
+                new BigNumber(this.startingBalances[_bot])
+                    .multipliedBy(this.leverage)
+                    .toFixed(8),
                 _bot === BOT_SHORT_1 ? POSITION_SHORT : POSITION_LONG,
                 this.priceP
             )
@@ -155,7 +157,7 @@ class Simulator {
     async simulate() {
         if (!this.ranSetBotParams)
             throw new Error('Please call setBotParams() before simulating')
-        this._initializeAccounts(this.startingBalances)
+        this._initializeAccounts()
 
         await this._fetchCandles()
 
