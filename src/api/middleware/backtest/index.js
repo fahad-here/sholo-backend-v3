@@ -242,6 +242,25 @@ async function getBackTestResult(req, res, next) {
     }
 }
 
+async function deleteMultipleResults(req, res, next) {
+    try {
+        const user = req.user
+        const { deleteIds } = req.body
+
+        const deletionResult = await SimulationResultSchema.deleteMany({
+            _userId: user._id,
+            _id: { $in: deleteIds }
+        })
+        if (deletionResult.deletedCount !== deleteIds.length)
+            return res
+                .status(500)
+                .json(ResponseMessage(true, 'Could not delete all results'))
+        return res.json(ResponseMessage(false, 'Successful request'))
+    } catch (e) {
+        return next(e)
+    }
+}
+
 async function deleteBackTestConfig(req, res, next) {
     try {
         const id = req.params.id
@@ -282,5 +301,6 @@ module.exports = {
     deleteBackTestConfig,
     runBackTestConfig,
     getBackTestResult,
-    getAllBackTestResults
+    getAllBackTestResults,
+    deleteMultipleResults
 }

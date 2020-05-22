@@ -38,6 +38,12 @@ backTestController.post(
     BackTestMiddleware.runBackTestConfig
 )
 
+backTestController.patch(
+    '/results/delete',
+    AuthMiddleware.requireJWT,
+    BackTestMiddleware.deleteMultipleResults
+)
+
 backTestController.get(
     '/results',
     AuthMiddleware.requireJWT,
