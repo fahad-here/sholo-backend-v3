@@ -23,6 +23,8 @@ const bots = {
 }
 
 const stats = {
+    capitalBtc: null,
+    capitalUsd: null,
     totalInitialBtcBalance: null,
     totalInitialUsdBalance: null,
     totalEndingBtcBalance: null,
@@ -36,13 +38,16 @@ const stats = {
     positionCounter: 0
 }
 
-const _getBotInstance = (balance, direction, priceP) => {
+const _getBotInstance = (capital, balance, direction, priceP) => {
     return {
+        capital, // initial capital in btc
         balance, // Balance in btc
         positions: [], // Position history
         direction, // Bot direction
         waitForExit: false, // Wait to exit position after price goes back to entry
-        priceP
+        priceP,
+        liquidationPrice: 0,
+        liquidated: false
     }
 }
 
@@ -127,11 +132,21 @@ class Simulator {
         return totalBtcBalance
     }
 
+    _getTotalBtcCapital() {
+        let totalBtcCapital = 0
+        for (let _bot of Object.keys(this.bots))
+            totalBtcCapital = new BigNumber(totalBtcCapital)
+                .plus(this.bots[_bot].capital)
+                .toFixed(8)
+        return totalBtcCapital
+    }
+
     _initializeAccounts() {
         this.bots = { ...bots }
         Logger.info('Initializing accounts..')
         for (let _bot of Object.keys(this.bots)) {
             this.bots[_bot] = _getBotInstance(
+                new BigNumber(this.startingBalances[_bot]).toFixed(8),
                 new BigNumber(this.startingBalances[_bot])
                     .multipliedBy(this.leverage)
                     .toFixed(8),
@@ -139,7 +154,12 @@ class Simulator {
                 this.priceP
             )
         }
-        this.stats.totalInitialBtcBalance = this._getTotalBtcBalances()
+        this.stats.totalInitialBtcBalance = new BigNumber(
+            this._getTotalBtcBalances()
+        )
+            .dividedBy(this.leverage)
+            .toFixed(8)
+        this.stats.capitalBtc = this._getTotalBtcCapital()
         Logger.info('Accounts:', this.bots)
     }
 
@@ -271,6 +291,15 @@ class Simulator {
         }
     }
 
+    _calculateLiquidation(bot, entryPrice, isLong) {
+        const liquidationModifier = new BigNumber(entryPrice)
+            .dividedBy(this.leverage)
+            .toFixed(8)
+        this.bots[bot].liquidationPrice = isLong
+            ? new BigNumber(entryPrice).minus(liquidationModifier).toFixed(8)
+            : new BigNumber(entryPrice).plus(liquidationModifier).toFixed(8)
+    }
+
     _enterPositionIfNeeded(bot, candle, time) {
         const isLongBot = bot.indexOf('l') !== -1
         const currentPosition =
@@ -279,41 +308,76 @@ class Simulator {
                 : null
         const priceP = this.bots[bot].priceP
         const isActivePosition = currentPosition && !currentPosition.isExit
-        if (!this.notify)
+        if (!this.notify && !this.bots[bot].liquidated)
             if (isActivePosition) {
-                //needs to exit
-                if (
-                    isLongBot &&
-                    new BigNumber(candle[LOW]).isLessThanOrEqualTo(
-                        priceP + this.priceA
-                    ) &&
-                    new BigNumber(candle[HIGH]).isGreaterThanOrEqualTo(
-                        priceP + this.priceA
-                    )
-                ) {
-                    this._addBotPosition(
-                        bot,
-                        priceP + this.priceA,
-                        candle,
-                        time
-                    )
-                    this.bots[bot].priceP += this.priceA
-                } else if (
-                    !isLongBot &&
-                    new BigNumber(candle[LOW]).isLessThanOrEqualTo(
-                        priceP - this.priceA
-                    ) &&
-                    new BigNumber(candle[HIGH]).isGreaterThanOrEqualTo(
-                        priceP - this.priceA
-                    )
-                ) {
-                    this._addBotPosition(
-                        bot,
-                        priceP - this.priceA,
-                        candle,
-                        time
-                    )
-                    this.bots[bot].priceP -= this.priceA
+                if (isLongBot) {
+                    if (
+                        new BigNumber(candle[LOW]).isLessThanOrEqualTo(
+                            bots[bot].liquidationPrice
+                        ) ||
+                        new BigNumber(candle[HIGH]).isLessThanOrEqualTo(
+                            bots[bot].liquidationPrice
+                        )
+                    ) {
+                        //liquidation price hit
+                        this.bots[bot].liquidated = true
+                        this.bots[bot].balance = 0
+                        this.bots[bot].liquidationStats = {
+                            candle,
+                            time,
+                            liquidationPrice: bots[bot].liquidationPrice
+                        }
+                    } else if (
+                        new BigNumber(candle[LOW]).isLessThanOrEqualTo(
+                            priceP + this.priceA
+                        ) &&
+                        new BigNumber(candle[HIGH]).isGreaterThanOrEqualTo(
+                            priceP + this.priceA
+                        )
+                    ) {
+                        //needs to exit
+                        this._addBotPosition(
+                            bot,
+                            priceP + this.priceA,
+                            candle,
+                            time
+                        )
+                        this.bots[bot].priceP += this.priceA
+                    }
+                } else {
+                    if (
+                        new BigNumber(candle[LOW]).isGreaterThanOrEqualTo(
+                            this.bots[bot].liquidationPrice
+                        ) ||
+                        new BigNumber(candle[HIGH]).isGreaterThanOrEqualTo(
+                            this.bots[bot].liquidationPrice
+                        )
+                    ) {
+                        //liquidation price hit
+                        this.bots[bot].liquidated = true
+                        this.bots[bot].balance = 0
+                        this.bots[bot].liquidationStats = {
+                            candle,
+                            time,
+                            liquidationPrice: this.bots[bot].liquidationPrice
+                        }
+                    } else if (
+                        new BigNumber(candle[LOW]).isLessThanOrEqualTo(
+                            priceP - this.priceA
+                        ) &&
+                        new BigNumber(candle[HIGH]).isGreaterThanOrEqualTo(
+                            priceP - this.priceA
+                        )
+                    ) {
+                        //needs to exit
+                        this._addBotPosition(
+                            bot,
+                            priceP - this.priceA,
+                            candle,
+                            time
+                        )
+                        this.bots[bot].priceP -= this.priceA
+                    }
                 }
             } else {
                 if (currentPosition) {
@@ -331,6 +395,11 @@ class Simulator {
                                 priceP - this.priceB,
                                 candle,
                                 time
+                            )
+                            this._calculateLiquidation(
+                                bot,
+                                priceP - this.priceB,
+                                isLongBot
                             )
                             this.bots[bot].priceP -= this.priceB
                             this.stats.positionCounter++
@@ -355,6 +424,11 @@ class Simulator {
                                 priceP: priceP,
                                 price: priceP + this.priceR
                             }
+                            this._calculateLiquidation(
+                                bot,
+                                priceP + this.priceR,
+                                isLongBot
+                            )
                             this.stats.positionCounter++
                         }
                     } else {
@@ -371,6 +445,11 @@ class Simulator {
                                 priceP + this.priceB,
                                 candle,
                                 time
+                            )
+                            this._calculateLiquidation(
+                                bot,
+                                priceP + this.priceB,
+                                isLongBot
                             )
                             this.bots[bot].priceP += this.priceB
                             this.stats.positionCounter++
@@ -394,6 +473,11 @@ class Simulator {
                                 time,
                                 price: priceP - this.priceR
                             }
+                            this._calculateLiquidation(
+                                bot,
+                                priceP - this.priceR,
+                                isLongBot
+                            )
                             this.stats.positionCounter++
                         }
                     }
@@ -406,6 +490,7 @@ class Simulator {
                     )
                 ) {
                     this._addBotPosition(bot, this.entryPrice, candle, time)
+                    this._calculateLiquidation(bot, this.entryPrice, isLongBot)
                     this.stats.positionCounter++
                 }
             }
@@ -415,19 +500,26 @@ class Simulator {
         let totalEndingBtcBalance = 0
         let totalFeesBtcPaid = 0
         let totalFeesUsdPaid = 0
+
         for (let bot of Object.keys(this.bots)) {
             const btcBalance =
-                this.bots[bot].balance !== 0
-                    ? this.bots[bot].balance
-                    : this._calcBotPositionBtcValue(
-                          this.bots[bot].direction,
-                          this.bots[bot].positions[
-                              this.bots[bot].positions.length - 1
-                          ].entry,
-                          this.bots[bot].positions[
-                              this.bots[bot].positions.length - 1
-                          ].amount,
-                          lastCandle[CLOSE]
+                this.leverage === 1
+                    ? this.bots[bot].balance !== 0
+                        ? this.bots[bot].balance
+                        : this._calcBotPositionBtcValue(
+                              this.bots[bot].direction,
+                              this.bots[bot].positions[
+                                  this.bots[bot].positions.length - 1
+                              ].entry,
+                              this.bots[bot].positions[
+                                  this.bots[bot].positions.length - 1
+                              ].amount,
+                              lastCandle[CLOSE]
+                          )
+                    : this._calculateFinalBalanceForBot(
+                          bot,
+                          this.bots[bot],
+                          lastCandle
                       )
             this.bots[bot].positions.map((position) => {
                 totalFeesBtcPaid = new BigNumber(totalFeesBtcPaid)
@@ -447,7 +539,7 @@ class Simulator {
             .toFixed(4)
         this.stats.totalBtcPnl = new BigNumber(this.stats.totalEndingBtcBalance)
             .minus(this.stats.totalInitialBtcBalance)
-            .toFixed(4)
+            .toFixed(8)
         this.stats.totalUsdPnl = new BigNumber(this.stats.totalEndingUsdBalance)
             .minus(this.stats.totalInitialUsdBalance)
             .toFixed(4)
@@ -463,6 +555,28 @@ class Simulator {
         this.stats.totalFeesUsdPaid = totalFeesUsdPaid
     }
 
+    _calculateFinalBalanceForBot(botKey, bot, lastCandle) {
+        let totalEndingBtcBalance = 0
+
+        const btcBalance =
+            bot.balance !== 0
+                ? bot.balance
+                : !bot.liquidated
+                ? this._calcBotPositionBtcValue(
+                      bot.direction,
+                      bot.positions[bot.positions.length - 1].entry,
+                      bot.positions[bot.positions.length - 1].amount,
+                      lastCandle[CLOSE]
+                  )
+                : 0
+        totalEndingBtcBalance = new BigNumber(btcBalance)
+            .minus(new BigNumber(bot.capital).multipliedBy(this.leverage))
+            .toFixed(8)
+        return bot.liquidated
+            ? 0
+            : new BigNumber(bot.capital).plus(totalEndingBtcBalance).toFixed(8)
+    }
+
     _simulateWithoutMargin() {
         const { candles, bots } = this
         let iterator = 0
@@ -472,6 +586,9 @@ class Simulator {
                     this.stats.totalInitialUsdBalance = new BigNumber(
                         this.stats.totalInitialBtcBalance
                     )
+                        .multipliedBy(candle[OPEN])
+                        .toFixed(4)
+                    this.stats.capitalUsd = new BigNumber(this.stats.capitalBtc)
                         .multipliedBy(candle[OPEN])
                         .toFixed(4)
                 }
@@ -495,7 +612,7 @@ class Simulator {
     }
 
     _simulateWithMargin(values) {
-        // TODO: Add margin logic
+        // TODO: Separate margin logic from normal
         return this._simulateWithoutMargin(values)
     }
 }
