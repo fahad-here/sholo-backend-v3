@@ -31,6 +31,8 @@ const stats = {
     totalEndingUsdBalance: null,
     totalUsdPnl: null,
     totalBtcPnl: null,
+    totalRealisedBtcPnl: null,
+    totalRealisedUsdPnl: null,
     totalUsdPnlPercent: null,
     totalBtcPnlPercent: null,
     initialCandlePrice: null,
@@ -500,8 +502,10 @@ class Simulator {
         let totalEndingBtcBalance = 0
         let totalFeesBtcPaid = 0
         let totalFeesUsdPaid = 0
+        let unrealised = false
 
         for (let bot of Object.keys(this.bots)) {
+            if (this.bots[bot].balance === 0) unrealised = true
             const btcBalance =
                 this.leverage === 1
                     ? this.bots[bot].balance !== 0
@@ -537,17 +541,35 @@ class Simulator {
         this.stats.totalEndingUsdBalance = new BigNumber(totalEndingBtcBalance)
             .multipliedBy(lastCandle[CLOSE])
             .toFixed(4)
-        this.stats.totalBtcPnl = new BigNumber(this.stats.totalEndingBtcBalance)
-            .minus(this.stats.totalInitialBtcBalance)
-            .toFixed(8)
-        this.stats.totalUsdPnl = new BigNumber(this.stats.totalEndingUsdBalance)
-            .minus(this.stats.totalInitialUsdBalance)
-            .toFixed(4)
-        this.stats.totalBtcPnlPercent = new BigNumber(this.stats.totalBtcPnl)
+        this.stats.totalBtcPnl = unrealised
+            ? new BigNumber(this.stats.totalEndingBtcBalance)
+                  .minus(this.stats.totalInitialBtcBalance)
+                  .toFixed(8)
+            : 0
+        this.stats.totalUsdPnl = unrealised
+            ? new BigNumber(this.stats.totalEndingUsdBalance)
+                  .minus(this.stats.totalInitialUsdBalance)
+                  .toFixed(4)
+            : 0
+        this.stats.totalRealisedBtcPnl = unrealised
+            ? 0
+            : new BigNumber(this.stats.totalEndingBtcBalance)
+                  .minus(this.stats.totalInitialBtcBalance)
+                  .toFixed(8)
+        this.stats.totalRealisedUsdPnl = unrealised
+            ? 0
+            : new BigNumber(this.stats.totalEndingUsdBalance)
+                  .minus(this.stats.totalInitialUsdBalance)
+                  .toFixed(4)
+        this.stats.totalBtcPnlPercent = new BigNumber(
+            unrealised ? this.stats.totalBtcPnl : this.stats.totalRealisedBtcPnl
+        )
             .dividedBy(this.stats.totalInitialBtcBalance)
             .multipliedBy(100)
             .toFixed(4)
-        this.stats.totalUsdPnlPercent = new BigNumber(this.stats.totalUsdPnl)
+        this.stats.totalUsdPnlPercent = new BigNumber(
+            unrealised ? this.stats.totalUsdPnl : this.stats.totalRealisedUsdPnl
+        )
             .dividedBy(this.stats.totalInitialUsdBalance)
             .multipliedBy(100)
             .toFixed(4)
