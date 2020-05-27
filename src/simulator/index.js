@@ -31,6 +31,8 @@ const stats = {
     totalEndingUsdBalance: null,
     totalUsdPnl: null,
     totalBtcPnl: null,
+    totalUnrealisedBtcPnl: null,
+    totalUnrealisedUsdPnl: null,
     totalRealisedBtcPnl: null,
     totalRealisedUsdPnl: null,
     totalUsdPnlPercent: null,
@@ -49,7 +51,8 @@ const _getBotInstance = (capital, balance, direction, priceP) => {
         waitForExit: false, // Wait to exit position after price goes back to entry
         priceP,
         liquidationPrice: 0,
-        liquidated: false
+        liquidated: false,
+        realisedPnl: 0
     }
 }
 
@@ -149,18 +152,14 @@ class Simulator {
         for (let _bot of Object.keys(this.bots)) {
             this.bots[_bot] = _getBotInstance(
                 new BigNumber(this.startingBalances[_bot]).toFixed(8),
-                new BigNumber(this.startingBalances[_bot])
-                    .multipliedBy(this.leverage)
-                    .toFixed(8),
+                new BigNumber(this.startingBalances[_bot]).toFixed(8),
                 _bot === BOT_SHORT_1 ? POSITION_SHORT : POSITION_LONG,
                 this.priceP
             )
         }
         this.stats.totalInitialBtcBalance = new BigNumber(
             this._getTotalBtcBalances()
-        )
-            .dividedBy(this.leverage)
-            .toFixed(8)
+        ).toFixed(8)
         this.stats.capitalBtc = this._getTotalBtcCapital()
         Logger.info('Accounts:', this.bots)
     }
@@ -195,7 +194,8 @@ class Simulator {
         time,
         candle,
         txFees,
-        txFeesUsd
+        txFeesUsd,
+        margin = 0
     ) {
         return {
             entry,
@@ -205,7 +205,8 @@ class Simulator {
             time,
             candle,
             txFees,
-            txFeesUsd
+            txFeesUsd,
+            margin
         }
     }
 
@@ -232,6 +233,7 @@ class Simulator {
         // Balance available for trades
         if (parseFloat(this.bots[bot].balance) > 0) {
             const txFees = new BigNumber(this.bots[bot].balance)
+                .multipliedBy(this.leverage)
                 .multipliedBy(feePercent)
                 .dividedBy(100)
                 .toFixed(8)
@@ -239,6 +241,10 @@ class Simulator {
                 .multipliedBy(candle[OPEN])
                 .toFixed(8)
             const amount = new BigNumber(this.bots[bot].balance)
+                .minus(txFees)
+                .multipliedBy(this.leverage)
+                .toFixed(8)
+            const margin = new BigNumber(this.bots[bot].balance)
                 .minus(txFees)
                 .toFixed(8)
             this.bots[bot].positions.push(
@@ -250,7 +256,8 @@ class Simulator {
                     time,
                     candle,
                     txFees,
-                    txFeesUsd
+                    txFeesUsd,
+                    margin
                 )
             )
             this.bots[bot].balance = 0
@@ -277,6 +284,7 @@ class Simulator {
                 .multipliedBy(candle[OPEN])
                 .toFixed(8)
             amount = new BigNumber(amount).minus(txFees).toFixed(8)
+
             this.bots[bot].positions.push(
                 this._getBotPosition(
                     price,
@@ -289,7 +297,17 @@ class Simulator {
                     txFeesUsd
                 )
             )
-            this.bots[bot].balance = amount
+            const profit = new BigNumber(amount)
+                .minus(currentPosition.amount)
+                .toFixed(8)
+            this.bots[bot].realisedPnl = new BigNumber(
+                this.bots[bot].realisedPnl
+            )
+                .plus(profit)
+                .toFixed(8)
+            this.bots[bot].balance = new BigNumber(currentPosition.margin)
+                .plus(profit)
+                .toFixed(8)
         }
     }
 
@@ -323,12 +341,17 @@ class Simulator {
                     ) {
                         //liquidation price hit
                         this.bots[bot].liquidated = true
-                        this.bots[bot].balance = 0
                         this.bots[bot].liquidationStats = {
                             candle,
                             time,
                             liquidationPrice: bots[bot].liquidationPrice
                         }
+                        this._addBotPosition(
+                            bot,
+                            this.bots[bot].liquidationPrice,
+                            candle,
+                            time
+                        )
                     } else if (
                         new BigNumber(candle[LOW]).isLessThanOrEqualTo(
                             priceP + this.priceA
@@ -357,12 +380,17 @@ class Simulator {
                     ) {
                         //liquidation price hit
                         this.bots[bot].liquidated = true
-                        this.bots[bot].balance = 0
                         this.bots[bot].liquidationStats = {
                             candle,
                             time,
                             liquidationPrice: this.bots[bot].liquidationPrice
                         }
+                        this._addBotPosition(
+                            bot,
+                            this.bots[bot].liquidationPrice,
+                            candle,
+                            time
+                        )
                     } else if (
                         new BigNumber(candle[LOW]).isLessThanOrEqualTo(
                             priceP - this.priceA
@@ -503,28 +531,64 @@ class Simulator {
         let totalFeesBtcPaid = 0
         let totalFeesUsdPaid = 0
         let unrealised = false
+        let unrealisedPnl = 0
+        let realisedPnl = 0
 
         for (let bot of Object.keys(this.bots)) {
-            if (this.bots[bot].balance === 0) unrealised = true
+            realisedPnl = new BigNumber(realisedPnl)
+                .plus(this.bots[bot].realisedPnl)
+                .toFixed(8)
+            if (this.bots[bot].balance === 0 && !this.bots[bot].liquidated)
+                unrealised = true
             const btcBalance =
-                this.leverage === 1
-                    ? this.bots[bot].balance !== 0
-                        ? this.bots[bot].balance
-                        : this._calcBotPositionBtcValue(
-                              this.bots[bot].direction,
+                this.bots[bot].balance !== 0
+                    ? this.bots[bot].liquidated
+                        ? 0
+                        : this.bots[bot].balance
+                    : this._calcBotPositionBtcValue(
+                          this.bots[bot].direction,
+                          this.bots[bot].positions[
+                              this.bots[bot].positions.length - 1
+                          ].entry,
+                          new BigNumber(
                               this.bots[bot].positions[
                                   this.bots[bot].positions.length - 1
-                              ].entry,
-                              this.bots[bot].positions[
-                                  this.bots[bot].positions.length - 1
-                              ].amount,
-                              lastCandle[CLOSE]
-                          )
-                    : this._calculateFinalBalanceForBot(
-                          bot,
-                          this.bots[bot],
-                          lastCandle
+                              ].amount
+                          ).toFixed(8),
+                          lastCandle[CLOSE]
                       )
+            if (unrealised) {
+                const fees = new BigNumber(btcBalance)
+                    .multipliedBy(FEES[this.feeType])
+                    .dividedBy(100)
+                    .toFixed(8)
+                const profit = new BigNumber(btcBalance)
+                    .minus(fees)
+                    .minus(
+                        this.bots[bot].positions[
+                            this.bots[bot].positions.length - 1
+                        ].amount
+                    )
+                    .toFixed(8)
+                unrealisedPnl = new BigNumber(unrealisedPnl)
+                    .plus(profit)
+                    .toFixed(8)
+
+                const unrealisedEndingBtcBalance = new BigNumber(
+                    this.bots[bot].positions[
+                        this.bots[bot].positions.length - 1
+                    ].margin
+                )
+                    .plus(profit)
+                    .toFixed(8)
+                totalEndingBtcBalance = new BigNumber(totalEndingBtcBalance)
+                    .plus(unrealisedEndingBtcBalance)
+                    .toFixed(8)
+            } else {
+                totalEndingBtcBalance = new BigNumber(totalEndingBtcBalance)
+                    .plus(btcBalance)
+                    .toFixed(8)
+            }
             this.bots[bot].positions.map((position) => {
                 totalFeesBtcPaid = new BigNumber(totalFeesBtcPaid)
                     .plus(position.txFees)
@@ -533,70 +597,39 @@ class Simulator {
                     .plus(position.txFeesUsd)
                     .toFixed(8)
             })
-            totalEndingBtcBalance = new BigNumber(totalEndingBtcBalance)
-                .plus(btcBalance)
-                .toFixed(8)
         }
         this.stats.totalEndingBtcBalance = totalEndingBtcBalance
         this.stats.totalEndingUsdBalance = new BigNumber(totalEndingBtcBalance)
             .multipliedBy(lastCandle[CLOSE])
             .toFixed(4)
-        this.stats.totalBtcPnl = unrealised
-            ? new BigNumber(this.stats.totalEndingBtcBalance)
-                  .minus(this.stats.totalInitialBtcBalance)
-                  .toFixed(8)
-            : 0
-        this.stats.totalUsdPnl = unrealised
-            ? new BigNumber(this.stats.totalEndingUsdBalance)
-                  .minus(this.stats.totalInitialUsdBalance)
-                  .toFixed(4)
-            : 0
-        this.stats.totalRealisedBtcPnl = unrealised
-            ? 0
-            : new BigNumber(this.stats.totalEndingBtcBalance)
-                  .minus(this.stats.totalInitialBtcBalance)
-                  .toFixed(8)
-        this.stats.totalRealisedUsdPnl = unrealised
-            ? 0
-            : new BigNumber(this.stats.totalEndingUsdBalance)
-                  .minus(this.stats.totalInitialUsdBalance)
-                  .toFixed(4)
-        this.stats.totalBtcPnlPercent = new BigNumber(
-            unrealised ? this.stats.totalBtcPnl : this.stats.totalRealisedBtcPnl
+        this.stats.totalBtcPnl = new BigNumber(realisedPnl)
+            .plus(unrealisedPnl)
+            .toFixed(8)
+        this.stats.totalUsdPnl = new BigNumber(this.stats.totalBtcPnl)
+            .multipliedBy(lastCandle[CLOSE])
+            .toFixed(4)
+        this.stats.totalUnrealisedBtcPnl = unrealisedPnl
+        this.stats.totalUnrealisedUsdPnl = new BigNumber(
+            this.stats.totalUnrealisedBtcPnl
         )
+            .multipliedBy(lastCandle[CLOSE])
+            .toFixed(4)
+        this.stats.totalRealisedBtcPnl = realisedPnl
+        this.stats.totalRealisedUsdPnl = new BigNumber(
+            this.stats.totalRealisedBtcPnl
+        )
+            .multipliedBy(lastCandle[CLOSE])
+            .toFixed(4)
+        this.stats.totalBtcPnlPercent = new BigNumber(this.stats.totalBtcPnl)
             .dividedBy(this.stats.totalInitialBtcBalance)
             .multipliedBy(100)
             .toFixed(4)
-        this.stats.totalUsdPnlPercent = new BigNumber(
-            unrealised ? this.stats.totalUsdPnl : this.stats.totalRealisedUsdPnl
-        )
+        this.stats.totalUsdPnlPercent = new BigNumber(this.stats.totalUsdPnl)
             .dividedBy(this.stats.totalInitialUsdBalance)
             .multipliedBy(100)
             .toFixed(4)
         this.stats.totalFeesBtcPaid = totalFeesBtcPaid
         this.stats.totalFeesUsdPaid = totalFeesUsdPaid
-    }
-
-    _calculateFinalBalanceForBot(botKey, bot, lastCandle) {
-        let totalEndingBtcBalance = 0
-
-        const btcBalance =
-            bot.balance !== 0
-                ? bot.balance
-                : !bot.liquidated
-                ? this._calcBotPositionBtcValue(
-                      bot.direction,
-                      bot.positions[bot.positions.length - 1].entry,
-                      bot.positions[bot.positions.length - 1].amount,
-                      lastCandle[CLOSE]
-                  )
-                : 0
-        totalEndingBtcBalance = new BigNumber(btcBalance)
-            .minus(new BigNumber(bot.capital).multipliedBy(this.leverage))
-            .toFixed(8)
-        return bot.liquidated
-            ? 0
-            : new BigNumber(bot.capital).plus(totalEndingBtcBalance).toFixed(8)
     }
 
     _simulateWithoutMargin() {

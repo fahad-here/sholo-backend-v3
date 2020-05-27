@@ -30,6 +30,8 @@ const SimulationResultSchema = new mongoose.Schema({
     totalEndingUsdBalance: { type: String, required: true },
     totalUsdPnl: { type: String, required: true },
     totalBtcPnl: { type: String, required: true },
+    totalUnrealisedBtcPnl: { type: String, required: true },
+    totalUnrealisedUsdPnl: { type: String, required: true },
     totalRealisedBtcPnl: { type: String, required: true },
     totalRealisedUsdPnl: { type: String, required: true },
     totalUsdPnlPercent: { type: String, required: true },
