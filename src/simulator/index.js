@@ -530,11 +530,11 @@ class Simulator {
         let totalEndingBtcBalance = 0
         let totalFeesBtcPaid = 0
         let totalFeesUsdPaid = 0
-        let unrealised = false
         let unrealisedPnl = 0
         let realisedPnl = 0
 
         for (let bot of Object.keys(this.bots)) {
+            let unrealised = false
             realisedPnl = new BigNumber(realisedPnl)
                 .plus(this.bots[bot].realisedPnl)
                 .toFixed(8)
@@ -573,7 +573,6 @@ class Simulator {
                 unrealisedPnl = new BigNumber(unrealisedPnl)
                     .plus(profit)
                     .toFixed(8)
-
                 const unrealisedEndingBtcBalance = new BigNumber(
                     this.bots[bot].positions[
                         this.bots[bot].positions.length - 1
