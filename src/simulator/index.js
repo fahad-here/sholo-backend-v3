@@ -125,7 +125,10 @@ class Simulator {
             [BOT_LONG_1]: [],
             [BOT_SHORT_1]: []
         }
-        this.stats = stats
+        this.stats = {
+            ...stats,
+            positionCounter: 0
+        }
     }
 
     _getTotalBtcBalances() {
