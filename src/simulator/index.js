@@ -120,7 +120,6 @@ class Simulator {
         this.priceR = priceR
         this.leverage = leverage
         this.feeType = feeType
-        this.isMargin = isMargin
         this.positions = {
             [BOT_LONG_1]: [],
             [BOT_SHORT_1]: []
@@ -184,9 +183,7 @@ class Simulator {
         this._initializeAccounts()
 
         await this._fetchCandles()
-
-        if (this.isMargin) return this._simulateWithMargin()
-        else return this._simulateWithoutMargin()
+        return this._simulate()
     }
 
     _getBotPosition(
@@ -234,7 +231,7 @@ class Simulator {
     _addBotPosition(bot, price, candle, time) {
         const feePercent = FEES[this.feeType]
         // Balance available for trades
-        if (parseFloat(this.bots[bot].balance) > 0) {
+        if (new BigNumber(this.bots[bot].balance).isGreaterThan(0)) {
             const txFees = new BigNumber(this.bots[bot].balance)
                 .multipliedBy(this.leverage)
                 .multipliedBy(feePercent)
@@ -634,7 +631,7 @@ class Simulator {
         this.stats.totalFeesUsdPaid = totalFeesUsdPaid
     }
 
-    _simulateWithoutMargin() {
+    _simulate() {
         const { candles, bots } = this
         let iterator = 0
         for (let candle of candles) {
@@ -666,11 +663,6 @@ class Simulator {
             bots: this.bots,
             notify: this.notify
         }
-    }
-
-    _simulateWithMargin(values) {
-        // TODO: Separate margin logic from normal
-        return this._simulateWithoutMargin(values)
     }
 }
 

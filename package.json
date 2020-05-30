@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": "node ./app.js",
+    "start": "nodemon ./app.js",
     "prettier": "prettier --write \"src/**/*.js\"",
     "test": "mocha \"./__tests__/**/*.js\""
   },
@@ -34,6 +34,7 @@
   "devDependencies": {
     "chai": "^4.2.0",
     "mocha": "^7.1.2",
+    "nodemon": "^2.0.4",
     "prettier": "^2.0.5"
   }
 }
