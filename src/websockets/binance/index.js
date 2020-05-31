@@ -11,6 +11,7 @@ class BinanceWS extends BaseWS {
         this.ws.onTicker(this.pair, (data) => {
             if (this.onEmitPriceChangeListener)
                 this.onEmitPriceChangeListener(
+                    this.id,
                     this.pair,
                     data.currentClose,
                     data.eventTime
@@ -22,6 +23,7 @@ class BinanceWS extends BaseWS {
         this.ws.onDepthLevelUpdate(this.pair, 10, (data) => {
             if (this.onEmitOrderBookChangeListener)
                 this.onEmitOrderBookChangeListener(
+                    this.id,
                     this.pair,
                     data.bids,
                     data.asks,

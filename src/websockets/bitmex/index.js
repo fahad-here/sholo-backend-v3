@@ -12,6 +12,7 @@ class BitmexWS extends BaseWS {
             const priceChangeData = data[0]
             if (this.onEmitPriceChangeListener)
                 this.onEmitPriceChangeListener(
+                    this.id,
                     this.pair,
                     priceChangeData.lastPrice,
                     priceChangeData.timestamp
@@ -24,6 +25,7 @@ class BitmexWS extends BaseWS {
             const orderBookData = data[0]
             if (this.onEmitOrderBookChangeListener)
                 this.onEmitOrderBookChangeListener(
+                    this.id,
                     this.pair,
                     orderBookData.bids,
                     orderBookData.asks,
