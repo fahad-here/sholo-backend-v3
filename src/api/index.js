@@ -8,7 +8,7 @@ const logger = require('morgan')
 const { DBConnect } = require('./db')
 const indexRouter = require('./routes/index')
 const { Logger, RouteErrorHandler } = require('../utils')
-
+const SocketIO = require('../socketio')
 const app = express()
 
 const PORT = 3000
@@ -36,7 +36,7 @@ app.use(RouteErrorHandler)
 
 app.set('port', PORT)
 let server = http.createServer(app)
-
+SocketIO.connect(server, indexRouter)
 server.listen(PORT)
 server.on('error', onError)
 server.on('listening', onListening)
