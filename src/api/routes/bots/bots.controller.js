@@ -30,3 +30,5 @@ botsController.put(
 )
 
 botsController.delete('/:id', AuthMiddleware.requireJWT, BotMiddleware)
+
+module.exports = botsController
