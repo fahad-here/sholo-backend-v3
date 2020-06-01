@@ -1,8 +1,10 @@
 const AuthMiddleware = require('./auth')
 const ProfileMiddleware = require('./profile')
 const BackTestMiddleware = require('./backtest')
+const BotMiddleware = require('./bot')
 module.exports = {
     AuthMiddleware,
     ProfileMiddleware,
-    BackTestMiddleware
+    BackTestMiddleware,
+    BotMiddleware
 }
