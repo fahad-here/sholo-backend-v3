@@ -48,6 +48,10 @@ class BaseExchange {
     getExchange() {
         return this.exchange
     }
+
+    setTestNet() {
+        this.exchange.urls['api'] = this.exchange.urls['test']
+    }
 }
 
 module.exports = BaseExchange
