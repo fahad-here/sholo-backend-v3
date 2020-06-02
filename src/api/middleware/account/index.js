@@ -141,7 +141,46 @@ async function editAccountDetails(req, res, next) {
     }
 }
 
+async function getAllAccounts(req, res, next) {
+    try {
+        const _userId = req.user._id
+        const accounts = await AccountSchema.find({ _userId })
+        return res
+            .status(200)
+            .json(
+                ResponseMessage(
+                    false,
+                    accounts.length > 0
+                        ? 'Successful request'
+                        : 'No accounts found',
+                    accounts
+                )
+            )
+    } catch (e) {
+        return next(e)
+    }
+}
+
+async function getAccount(req, res, next) {
+    try {
+        const id = req.params.id
+        const _userId = req.user._id
+        const account = await AccountSchema.findOne({ _userId, _id: id })
+        return account
+            ? res
+                  .status(200)
+                  .json(ResponseMessage(false, 'No such account found'))
+            : res
+                  .status(200)
+                  .json(ResponseMessage(false, 'Successful request', account))
+    } catch (e) {
+        return next(e)
+    }
+}
+
 module.exports = {
     createNewAccount,
-    editAccountDetails
+    editAccountDetails,
+    getAccount,
+    getAllAccounts
 }

@@ -4,9 +4,17 @@ const { AuthMiddleware, AccountMiddleware } = require('../../middleware')
 const { Validation } = require('../../../utils')
 const { ValidateBody, Schemas } = Validation
 
-accountsController.get('/', AuthMiddleware.requireJWT, AccountMiddleware)
+accountsController.get(
+    '/',
+    AuthMiddleware.requireJWT,
+    AccountMiddleware.getAllAccounts
+)
 
-accountsController.get('/:id', AuthMiddleware.requireJWT, AccountMiddleware)
+accountsController.get(
+    '/:id',
+    AuthMiddleware.requireJWT,
+    AccountMiddleware.getAccount
+)
 
 accountsController.post(
     '/',
