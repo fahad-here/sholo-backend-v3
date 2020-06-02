@@ -18,8 +18,8 @@ accountsController.post(
 accountsController.put(
     '/:id',
     AuthMiddleware.requireJWT,
-    ValidateBody(),
-    AccountMiddleware
+    ValidateBody(Schemas.CreateAccount),
+    AccountMiddleware.editAccountDetails
 )
 
 accountsController.delete('/:id', AuthMiddleware.requireJWT, AccountMiddleware)

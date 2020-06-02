@@ -93,6 +93,55 @@ async function createNewAccount(req, res, next) {
     }
 }
 
+async function editAccountDetails(req, res, next) {
+    try {
+        const { id } = req.params
+        const {
+            exchange,
+            accountName,
+            accountType,
+            apiKey,
+            apiSecret,
+            testNet
+        } = req.body
+        //TODO: fix this when bots are added
+        const botInUse = false
+        if (botInUse)
+            return res
+                .status(403)
+                .json(
+                    ResponseMessage(
+                        true,
+                        'Account in use by a bot, Please disable the bot before editing an account'
+                    )
+                )
+        const updatedAccount = await AccountSchema.findByIdAndUpdate(
+            { _id: id },
+            {
+                $set: {
+                    exchange,
+                    accountName,
+                    accountType,
+                    apiKey,
+                    apiSecret,
+                    testNet
+                }
+            },
+            { new: true }
+        )
+        return updatedAccount
+            ? res.json(
+                  ResponseMessage(false, 'Successful Request', {
+                      account: updatedAccount
+                  })
+              )
+            : res.status(404).json(ResponseMessage(true, 'Account not found'))
+    } catch (e) {
+        next(e)
+    }
+}
+
 module.exports = {
-    createNewAccount
+    createNewAccount,
+    editAccountDetails
 }
