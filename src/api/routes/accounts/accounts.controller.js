@@ -30,6 +30,10 @@ accountsController.put(
     AccountMiddleware.editAccountDetails
 )
 
-accountsController.delete('/:id', AuthMiddleware.requireJWT, AccountMiddleware)
+accountsController.delete(
+    '/:id',
+    AuthMiddleware.requireJWT,
+    AccountMiddleware.deleteAccount
+)
 
 module.exports = accountsController

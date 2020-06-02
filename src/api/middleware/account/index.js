@@ -178,9 +178,38 @@ async function getAccount(req, res, next) {
     }
 }
 
+async function deleteAccount(req, res, next) {
+    try {
+        const _userId = req.user._id
+        const id = req.params.id
+        const botInUse = false
+        if (botInUse)
+            return res
+                .status(403)
+                .json(
+                    ResponseMessage(
+                        true,
+                        'Account in use by a bot, Please disable the bot before editing an account'
+                    )
+                )
+        const removeRes = await AccountSchema.findOneAndDelete({
+            _id: id,
+            _userId
+        })
+        return removeRes
+            ? res
+                  .status(500)
+                  .json(ResponseMessage(true, 'Error deleting account'))
+            : res.status(200).json(ResponseMessage(false, 'Successful request'))
+    } catch (e) {
+        return next(e)
+    }
+}
+
 module.exports = {
     createNewAccount,
     editAccountDetails,
     getAccount,
-    getAllAccounts
+    getAllAccounts,
+    deleteAccount
 }
