@@ -40,6 +40,9 @@ const BotConfigSchema = new mongoose.Schema({
         default: Date.now
     }
 })
-BotConfigSchema.plugin(AutoIncrement, { inc_field: 'id' })
+BotConfigSchema.plugin(AutoIncrement, {
+    id: 'botConfigCounter',
+    inc_field: 'id'
+})
 const BotConfig = mongoose.model('BackTestConfig', BotConfigSchema)
 module.exports = BotConfig

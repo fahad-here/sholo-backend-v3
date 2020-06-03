@@ -23,6 +23,9 @@ const BackTestConfigSchema = new mongoose.Schema({
         default: Date.now
     }
 })
-BackTestConfigSchema.plugin(AutoIncrement, { inc_field: 'id' })
+BackTestConfigSchema.plugin(AutoIncrement, {
+    id: 'backtestConfigCounter',
+    inc_field: 'id'
+})
 const BackTestConfig = mongoose.model('BackTestConfig', BackTestConfigSchema)
 module.exports = BackTestConfig

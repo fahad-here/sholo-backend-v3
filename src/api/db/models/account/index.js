@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const AutoIncrement = require('mongoose-sequence')(mongoose)
 const { POSITION_LONG, POSITION_SHORT } = require('../../../../constants')
 const Schema = mongoose.Schema
 
@@ -43,6 +44,7 @@ const accountSchema = new Schema({
     uid: String
 })
 
+accountSchema.plugin(AutoIncrement, { id: 'accountCounter', inc_field: 'id' })
 const Accounts = mongoose.model('account', accountSchema)
 
 module.exports = Accounts
