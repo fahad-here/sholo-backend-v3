@@ -1,9 +1,10 @@
 const moment = require('moment')
-
 const Logger = require('./logger')
 const ResponseMessage = require('./getResponseMessage')
 const RouteErrorHandler = require('./errorHandler')
 const Validation = require('./validation')
+const GetExchangeClass = require('./getExchangeClass')
+
 const GetCandleKey = (exchangeName, symbol, timeFrame) =>
     `${exchangeName}__${symbol}__${timeFrame}`
 const RoundDate = (date, duration, method) =>
@@ -12,6 +13,7 @@ const GetPriceTickerKey = (exchangeName, pair) =>
     `${exchangeName}__price__${pair}`
 const GetOrderBook10TickerKey = (exchangeName, pair) =>
     `${exchangeName}__order10__${pair}`
+
 module.exports = {
     Logger,
     ResponseMessage,
@@ -20,5 +22,6 @@ module.exports = {
     GetCandleKey,
     RoundDate,
     GetPriceTickerKey,
-    GetOrderBook10TickerKey
+    GetOrderBook10TickerKey,
+    GetExchangeClass
 }

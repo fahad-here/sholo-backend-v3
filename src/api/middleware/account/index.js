@@ -1,12 +1,7 @@
 const { DBSchemas } = require('../../db/index')
 const { AccountSchema } = DBSchemas
-const { ResponseMessage } = require('../../../utils')
-const { Bitmex, Binance } = require('../../../exchange')
-const {
-    ALLOWED_EXCHANGES,
-    BINANCE_EXCHANGE,
-    BITMEX_EXCHANGE
-} = require('../../../constants')
+const { ResponseMessage, GetExchangeClass } = require('../../../utils')
+const { ALLOWED_EXCHANGES } = require('../../../constants')
 const ccxt = require('ccxt')
 
 async function createNewAccount(req, res, next) {
@@ -32,25 +27,13 @@ async function createNewAccount(req, res, next) {
                 .json(
                     ResponseMessage(true, 'This exchange is not supported yet!')
                 )
-        let exchangeClass
-        switch (exchange) {
-            case BITMEX_EXCHANGE:
-                exchangeClass = new Bitmex({
-                    apiKey,
-                    secret: apiSecret,
-                    enableRateLimit: true
-                })
-                break
-            case BINANCE_EXCHANGE:
-                exchangeClass = new Binance({
-                    apiKey,
-                    secret: apiSecret,
-                    enableRateLimit: true
-                })
-                break
+        const exchangeParams = {
+            enableRateLimit: true,
+            apiKey,
+            secret: apiSecret
         }
+        let exchangeClass = await GetExchangeClass(exchange, exchangeParams)
         if (testNet) exchangeClass.setTestNet()
-
         const balance = await exchangeClass.getFetchBalance()
         const userID = res.locals.user._id
         const createRes = await new AccountSchema({
