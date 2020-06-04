@@ -11,7 +11,10 @@ const {
     JWT_REFRESH_ALGORITHM,
     REDIS_HOST,
     REDIS_PASSWORD,
-    REDIS_PORT
+    REDIS_PORT,
+    AWS_SES_ACCESS_KEY_ID,
+    AWS_SES_SECRET_ACCESS_KEY,
+    AWS_SES_REGION
 } = process.env
 
 const whitelist = ['http://localhost:3000']
@@ -26,6 +29,13 @@ const CORS_CONFIG = {
     }
 }
 
+const SES_CONFIG = {
+    apiVersion: '2010-12-01',
+    accessKeyId: AWS_SES_ACCESS_KEY_ID,
+    secretAccessKey: AWS_SES_SECRET_ACCESS_KEY,
+    region: AWS_SES_REGION
+}
+
 module.exports = {
     CORS_CONFIG,
     MONGO_DEV_CONNECTION_STRING,
@@ -38,5 +48,6 @@ module.exports = {
     JWT_REFRESH_ALGORITHM,
     REDIS_HOST,
     REDIS_PASSWORD,
-    REDIS_PORT
+    REDIS_PORT,
+    SES_CONFIG
 }
