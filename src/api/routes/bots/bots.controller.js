@@ -4,9 +4,11 @@ const { AuthMiddleware, BotMiddleware } = require('../../middleware')
 const { Validation } = require('../../../utils')
 const { ValidateBody, Schemas } = Validation
 
-botsController.get('/', AuthMiddleware.requireJWT, BotMiddleware)
-
-botsController.get('/:id', AuthMiddleware.requireJWT, BotMiddleware)
+botsController.get(
+    '/',
+    AuthMiddleware.requireJWT,
+    BotMiddleware.getAllBotConfigs
+)
 
 botsController.post(
     '/',
@@ -25,10 +27,14 @@ botsController.post(
 botsController.put(
     '/:id',
     AuthMiddleware.requireJWT,
-    ValidateBody(),
-    BotMiddleware
+    ValidateBody(Schemas.CreateBotConfig),
+    BotMiddleware.editBotConfig
 )
 
-botsController.delete('/:id', AuthMiddleware.requireJWT, BotMiddleware)
+botsController.delete(
+    '/:id',
+    AuthMiddleware.requireJWT,
+    BotMiddleware.deleteBotConfig
+)
 
 module.exports = botsController
