@@ -82,6 +82,7 @@ class Simulator {
         this.timeFrame = timeFrame
         this.fromDateTime = fromDateTime
         this.toDateTime = toDateTime
+        this.positionId = 1
     }
 
     setBotParams(
@@ -187,6 +188,7 @@ class Simulator {
     }
 
     _getBotPosition(
+        id,
         entry,
         amount,
         direction,
@@ -198,6 +200,7 @@ class Simulator {
         margin = 0
     ) {
         return {
+            id,
             entry,
             amount,
             direction,
@@ -249,6 +252,7 @@ class Simulator {
                 .toFixed(8)
             this.bots[bot].positions.push(
                 this._getBotPosition(
+                    this.positionId,
                     price,
                     amount,
                     this.bots[bot].direction,
@@ -260,6 +264,7 @@ class Simulator {
                     margin
                 )
             )
+            this.positionId++
             this.bots[bot].balance = 0
         } else if (
             this.bots[bot].balance === 0 &&
@@ -287,6 +292,7 @@ class Simulator {
 
             this.bots[bot].positions.push(
                 this._getBotPosition(
+                    this.positionId,
                     price,
                     amount,
                     this.bots[bot].direction,
@@ -297,6 +303,7 @@ class Simulator {
                     txFeesUsd
                 )
             )
+            this.positionId++
             const profit = new BigNumber(amount)
                 .minus(currentPosition.amount)
                 .toFixed(8)
