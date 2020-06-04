@@ -66,6 +66,18 @@ const _checkAccountBalances = async (accountIds, startingBalances) => {
 const _toggleAccountInUse = async (accountID, inUseByConfig) =>
     await AccountSchema.findByIdAndUpdate({ _id: accountID }, { inUseByConfig })
 
+const _startBot = (req, res, next) => {
+    return res.json(ResponseMessage(false, 'Place Holder'))
+}
+
+const _stopBot = (req, res, next) => {
+    return res.json(ResponseMessage(false, 'Place Holder'))
+}
+
+const _killBot = (req, res, next) => {
+    return res.json(ResponseMessage(false, 'Place Holder'))
+}
+
 async function createBotConfig(req, res, next) {
     try {
         const {
@@ -292,9 +304,45 @@ async function getAllBotConfigs(req, res, next) {
     }
 }
 
+async function runBotConfigAction(req, res, next) {
+    try {
+        let { action, id } = req.params
+        let _userId = req.user._id
+        if (action !== 'start' || action !== 'stop' || action !== 'kill') {
+            return res
+                .status(403)
+                .json(
+                    ResponseMessage(
+                        true,
+                        'This is not an action we can perform on the bot.'
+                    )
+                )
+        }
+        const findBotConfig = await BotConfigSchema.findOne({
+            _id: id,
+            _userId
+        })
+        if (!findBotConfig)
+            return res
+                .status(404)
+                .json(ResponseMessage(true, 'Bot configuration not found.'))
+        switch (action) {
+            case 'start':
+                return await _startBot(req, res, next)
+            case 'stop':
+                return await _stopBot(req, res, next)
+            case 'kill':
+                return await _killBot(req, res, next)
+        }
+    } catch (e) {
+        return next(e)
+    }
+}
+
 module.exports = {
     createBotConfig,
     editBotConfig,
     deleteBotConfig,
-    getAllBotConfigs
+    getAllBotConfigs,
+    runBotConfigAction
 }

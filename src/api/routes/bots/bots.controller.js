@@ -20,8 +20,7 @@ botsController.post(
 botsController.post(
     '/:id/:action',
     AuthMiddleware.requireJWT,
-    ValidateBody(),
-    BotMiddleware
+    BotMiddleware.runBotConfigAction
 )
 
 botsController.put(
