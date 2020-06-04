@@ -44,5 +44,5 @@ BotConfigSchema.plugin(AutoIncrement, {
     id: 'botConfigCounter',
     inc_field: 'id'
 })
-const BotConfig = mongoose.model('BackTestConfig', BotConfigSchema)
+const BotConfig = mongoose.model('bot-config', BotConfigSchema)
 module.exports = BotConfig

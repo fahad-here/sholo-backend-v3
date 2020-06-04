@@ -191,7 +191,8 @@ async function runBackTestConfig(req, res, next) {
             endTime,
             priceA,
             priceB,
-            priceR
+            priceR,
+            leverage
         }).save()
         res.json(
             ResponseMessage(false, 'Ran simulation successfully', {
