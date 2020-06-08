@@ -1,6 +1,11 @@
 const { ResponseMessage, GetExchangeClass } = require('../../../utils')
 const { DBSchemas } = require('../../db/index')
-const { AccountSchema, BotConfigSchema } = DBSchemas
+const {
+    AccountSchema,
+    BotConfigSchema,
+    BotConfigSessionSchema,
+    BotSchema
+} = DBSchemas
 
 const _checkUniqueAccounts = (accountIds) => {
     let accountIDArray = []
@@ -66,16 +71,175 @@ const _checkAccountBalances = async (accountIds, startingBalances) => {
 const _toggleAccountInUse = async (accountID, inUseByConfig) =>
     await AccountSchema.findByIdAndUpdate({ _id: accountID }, { inUseByConfig })
 
-const _startBot = (req, res, next) => {
-    return res.json(ResponseMessage(false, 'Place Holder'))
+const _closeOpenBTCPositions = async (accountId, symbol) => {
+    const accountDetails = await AccountSchema.findById({ _id: accountId })
+    Logger.info('Account Details ', accountDetails._doc)
+    const exchangeParams = {
+        enableRateLimit: true,
+        apiKey: accountDetails.apiKey,
+        secret: accountDetails.apiSecret
+    }
+    let exchangeClass = await GetExchangeClass(
+        accountDetails.exchange,
+        exchangeParams
+    )
+    if (accountDetails.testNet) exchangeClass.setTestNet()
+    //close positions when trade module is added
 }
 
-const _stopBot = (req, res, next) => {
-    return res.json(ResponseMessage(false, 'Place Holder'))
+const _createBot = async (
+    order,
+    botConfig,
+    botConfigSession,
+    accountDetails
+) => {
+    const {
+        _id: _botConfigId,
+        _userId,
+        startingBalances,
+        exchange,
+        symbol,
+        entryPrice,
+        priceA,
+        priceB,
+        priceR,
+        leverage,
+        marketThreshold,
+        feeType
+    } = botConfig
+    const _accountId = accountDetails._id
+    const initialBalance = startingBalances[order]
+    const direction = order.includes('l') ? 'long' : 'short'
+    const { _id: _botSessionId } = botConfigSession
+    return await new BotSchema({
+        _userId,
+        _accountId,
+        _botConfigId,
+        _botSessionId,
+        direction,
+        order,
+        exchange,
+        symbol,
+        initialBalance,
+        balance: initialBalance,
+        priceA,
+        priceB,
+        priceR,
+        priceP: entryPrice,
+        entryPrice,
+        leverage,
+        liquidated: false,
+        marketThreshold,
+        feeType,
+        testNet: accountDetails.testNet
+    }).save()
 }
 
-const _killBot = (req, res, next) => {
-    return res.json(ResponseMessage(false, 'Place Holder'))
+const _changeAccountStatus = async (accountId, inUse) =>
+    await AccountSchema.findByIdAndUpdate({ _id: accountId }, { inUse })
+
+const _startBot = async (req, res, next, botConfig) => {
+    try {
+        let accountCheck = await _checkUniqueAccounts(
+            botConfig.selectedAccounts
+        )
+        if (!accountCheck)
+            return res
+                .status(403)
+                .json(ResponseMessage(true, 'Please choose unique accounts'))
+        let {
+            selectedAccounts,
+            startingBalances,
+            exchange,
+            symbol,
+            entryPrice,
+            priceA,
+            priceB,
+            priceR,
+            leverage,
+            marketThreshold,
+            feeType,
+            active
+        } = botConfig
+        if (active)
+            return res
+                .status(500)
+                .json(
+                    ResponseMessage(true, 'Bot configuration is already active')
+                )
+        let botConfigSession = await new BotConfigSessionSchema({
+            selectedAccounts,
+            startingBalances,
+            exchange,
+            symbol,
+            entryPrice,
+            priceA,
+            priceB,
+            priceR,
+            leverage,
+            marketThreshold,
+            feeType,
+            startedAt: new Date()
+        }).save()
+        let bots = []
+        for (let key of Object.keys(selectedAccounts)) {
+            // close open positions if any
+            // change account status
+            // create a bot for s1 and l1
+            await _closeOpenBTCPositions(selectedAccounts[key], symbol)
+            const accountDetails = await _changeAccountStatus(
+                selectedAccounts[key],
+                true
+            )
+            const bot = await _createBot(
+                key,
+                botConfig,
+                botConfigSession,
+                accountDetails
+            )
+            bots.push(bot)
+        }
+        //update the bot config with the session
+        //enable all the bots
+        const savedBotConfig = await BotConfigSchema.findByIdAndUpdate(
+            { _id: botConfig._id },
+            {
+                $set: {
+                    active: true,
+                    currentSession: botConfigSession._id
+                }
+            },
+            { new: true }
+        )
+        for (let i = 0; i < bots.length; i++) {
+            //await enableBot(bots[i])
+        }
+        return res.json(
+            ResponseMessage(false, 'Bot configuration is now active', {
+                botConfig: savedBotConfig,
+                botConfigSession,
+                bots
+            })
+        )
+    } catch (e) {
+        return next(e)
+    }
+}
+
+const _stopBot = (req, res, next, botConfig) => {
+    try {
+        return res.json(ResponseMessage(false, 'Place Holder'))
+    } catch (e) {
+        return next(e)
+    }
+}
+
+const _killBot = (req, res, next, botConfig) => {
+    try {
+        return res.json(ResponseMessage(false, 'Place Holder'))
+    } catch (e) {
+        return next(e)
+    }
 }
 
 async function createBotConfig(req, res, next) {
@@ -328,11 +492,11 @@ async function runBotConfigAction(req, res, next) {
                 .json(ResponseMessage(true, 'Bot configuration not found.'))
         switch (action) {
             case 'start':
-                return await _startBot(req, res, next)
+                return await _startBot(req, res, next, findBotConfig, _userId)
             case 'stop':
-                return await _stopBot(req, res, next)
+                return await _stopBot(req, res, next, findBotConfig, _userId)
             case 'kill':
-                return await _killBot(req, res, next)
+                return await _killBot(req, res, next, findBotConfig, _userId)
         }
     } catch (e) {
         return next(e)
