@@ -6,6 +6,10 @@ const GetExchangeClass = (exchangeId, options) => {
         case BITMEX_EXCHANGE:
             return new Bitmex(options)
         case BINANCE_EXCHANGE:
+            options = {
+                ...options,
+                defaultType: 'future'
+            }
             return new Binance(options)
         default:
             return new Bitmex(options)
