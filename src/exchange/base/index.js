@@ -5,6 +5,11 @@ class BaseExchange {
         if (!ccxt.exchanges.includes(id))
             throw new Error('Exchange does not exist')
         this.id = id
+        //TODO: Change this when moving to production
+        options = {
+            ...options,
+            verbose: true
+        }
         this.exchange = new ccxt[id](options)
     }
 

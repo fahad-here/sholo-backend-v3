@@ -30,6 +30,11 @@ class Trade {
                     symbol,
                     leverage
                 })
+                //change to isolated if in cross mode
+                await exchange.fapiPrivatePostMarginType({
+                    symbol,
+                    marginType: 'ISOLATED'
+                })
                 break
             default:
                 throw new Error('Leverage does not exist for this exchange')
