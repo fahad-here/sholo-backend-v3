@@ -6,6 +6,7 @@ const {
     CREATE_LIMIT_ORDER,
     MAP_WS_PAIR_TO_SYMBOL
 } = require('../constants')
+const BigNumber = require('bignumber.js')
 
 class Trade {
     constructor(exchangeId, exchangeParams, testNet = true) {
@@ -56,6 +57,7 @@ class Trade {
         }
     }
 
+    //this only works on leverge for bitmex due to bitmex being a futures only exchange
     async createMarketOrder(side, amount, params = {}) {
         if (!this.symbol) throw new Error('Please set your exchange pair first')
         if (!this.leverage) throw new Error('Please set your leverage first')
@@ -98,6 +100,47 @@ class Trade {
             price,
             params
         )
+    }
+
+    async closeOpenPositions() {
+        const exchange = this.exchange.getExchange()
+        const symbol = this.symbol
+        if (!symbol) throw new Error('Please set your exchange pair first')
+        switch (this.exchangeId) {
+            case BINANCE_EXCHANGE:
+                const allCurrentPositions = await exchange.fapiPrivateGetPositionRisk(
+                    {
+                        symbol
+                    }
+                )
+                //get current symbol position
+                const relevantPosition = allCurrentPositions.filter(
+                    (positions) => positions.symbol === symbol
+                )[0]
+                //checks if there is an open position
+                if (!new BigNumber(relevantPosition.positionAmt).isEqualTo(0)) {
+                    const isLong = new BigNumber(
+                        relevantPosition.positionAmt
+                    ).isGreaterThan(0)
+                    // if the current position is a short makes a buy order, sell order otherwise
+                    // if the current position is a short multiplies by -1 to keep the binance format
+                    return await this.createMarketOrder(
+                        isLong ? 'SELL' : 'BUY',
+                        isLong
+                            ? relevantPosition.positionAmt
+                            : new BigNumber(relevantPosition.positionAmt)
+                                  .multipliedBy(-1)
+                                  .toFixed(8)
+                    )
+                }
+                return {
+                    message: `All positions on ${this.symbol} are closed already`
+                }
+            case BITMEX_EXCHANGE:
+                return await exchange.privatePostOrderClosePosition({
+                    symbol
+                })
+        }
     }
 }
 
