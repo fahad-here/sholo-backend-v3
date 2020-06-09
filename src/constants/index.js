@@ -64,6 +64,9 @@ const MAP_WS_PAIR_TO_SYMBOL = {
     'ETH/USDT': 'ETHUSDT'
 }
 
+const CREATE_LIMIT_ORDER = 'createLimitOrder'
+const CREATE_MARKET_ORDER = 'createMarketOrder'
+
 module.exports = {
     FEES,
     CANDLE_POSITIONS,
@@ -77,5 +80,7 @@ module.exports = {
     DEFAULT_MARKET_THRESHOLD,
     MAP_WS_PAIR_TO_SYMBOL,
     BITMEX_SYMBOLS,
-    OTHER_SYMBOLS
+    OTHER_SYMBOLS,
+    CREATE_LIMIT_ORDER,
+    CREATE_MARKET_ORDER
 }
