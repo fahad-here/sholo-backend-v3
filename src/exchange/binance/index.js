@@ -111,6 +111,18 @@ class Binance extends BaseExchange {
             orderId
         })
     }
+
+    //limited to last 3 months of trades
+    async getTrades(symbol, startTime, limit, params = {}) {
+        if (!this.exchange.hasFetchMyTrades)
+            throw new Error('This exchange does not support getting trades')
+        return this.exchange.fapiPrivateGetUserTrades({
+            symbol,
+            limit,
+            startTime,
+            ...params
+        })
+    }
 }
 
 module.exports = Binance

@@ -68,6 +68,14 @@ class Trade {
         if (!symbol) throw new Error('Please set your exchange pair first')
         return this.exchange.closeOpenPositions(symbol)
     }
+
+    async getTrades(limit, startTime, endTime, params) {
+        if (!this.symbol) throw new Error('Please set your exchange pair first')
+        return this.exchange.getTrades(this.symbol, startTime, limit, {
+            ...params,
+            endTime
+        })
+    }
 }
 
 module.exports = Trade

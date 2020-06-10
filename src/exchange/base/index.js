@@ -1,6 +1,5 @@
 const ccxt = require('ccxt')
 const { CREATE_MARKET_ORDER, CREATE_LIMIT_ORDER } = require('../../constants')
-const BigNumber = require('bignumber.js')
 
 class BaseExchange {
     constructor(id, options = { enableRateLimit: true }) {
@@ -111,7 +110,7 @@ class BaseExchange {
         return await this.exchange.cancelOrder(orderId, symbol)
     }
 
-    async getTrades(symbol, since, limit, params) {
+    async getTrades(symbol, since, limit, params = {}) {
         if (!this.exchange.hasFetchMyTrades)
             throw new Error('This exchange does not support getting trades')
         return await this.exchange.fetchMyTrades(symbol, since, limit, params)
