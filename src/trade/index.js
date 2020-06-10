@@ -102,6 +102,50 @@ class Trade {
         )
     }
 
+    async getOrder(orderId) {
+        const exchange = this.exchange.getExchange()
+        const symbol = this.symbol
+        if (!symbol) throw new Error('Please set your exchange pair first')
+        switch (this.exchangeId) {
+            case BINANCE_EXCHANGE:
+                return await exchange.fapiPrivateGetOpenOrder({
+                    symbol,
+                    orderId
+                })
+            case BITMEX_EXCHANGE:
+                return await exchange.fetchOrder(orderId, symbol)
+        }
+    }
+
+    async getAllSymbolOrders() {
+        const exchange = this.exchange.getExchange()
+        const symbol = this.symbol
+        if (!symbol) throw new Error('Please set your exchange pair first')
+        switch (this.exchangeId) {
+            case BINANCE_EXCHANGE:
+                return await exchange.fapiPrivateGetAllOrders({
+                    symbol
+                })
+            case BITMEX_EXCHANGE:
+                return await exchange.fetchOrders(symbol)
+        }
+    }
+
+    async cancelOpenOrder(orderId) {
+        const exchange = this.exchange.getExchange()
+        const symbol = this.symbol
+        if (!symbol) throw new Error('Please set your exchange pair first')
+        switch (this.exchangeId) {
+            case BINANCE_EXCHANGE:
+                return await exchange.fapiPrivateDeleteOrder({
+                    symbol,
+                    orderId
+                })
+            case BITMEX_EXCHANGE:
+                return await exchange.cancelOrder(orderId, symbol)
+        }
+    }
+
     async closeOpenPositions() {
         const exchange = this.exchange.getExchange()
         const symbol = this.symbol
