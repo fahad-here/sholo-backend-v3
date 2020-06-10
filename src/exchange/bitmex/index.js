@@ -5,6 +5,20 @@ class Bitmex extends BaseExchange {
         const id = 'bitmex'
         super(id, options)
     }
+
+    async setLeverage(leverage, symbol) {
+        super.setLeverage(leverage, symbol)
+        return await this.exchange.privatePostPositionLeverage({
+            symbol,
+            leverage
+        })
+    }
+
+    async closeOpenPositions(symbol) {
+        return await this.exchange.privatePostOrderClosePosition({
+            symbol
+        })
+    }
 }
 
 module.exports = Bitmex
