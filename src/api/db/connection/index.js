@@ -20,6 +20,10 @@ const DBConnect = () => {
     })
 }
 
+const DBDisconnect = () => {
+    mongoose.disconnect()
+}
+
 const DBConnection = mongoose.connection
 
 DBConnection.on('connecting', () => {
@@ -46,4 +50,4 @@ DBConnection.on('error', (error) => {
     Logger.info('Error Connecting To DB', error)
 })
 
-module.exports = DBConnect
+module.exports = { DBConnect, DBDisconnect }

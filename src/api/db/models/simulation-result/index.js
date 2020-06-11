@@ -43,6 +43,7 @@ const SimulationResultSchema = new mongoose.Schema({
     initialCandlePrice: { type: Number, required: true },
     finalCandlePrice: { type: Number, required: true },
     leverage: { type: Number, required: true },
+    entryPrice: { type: Number, required: true },
     priceA: { type: Number, required: true },
     priceB: { type: Number, required: true },
     priceR: { type: Number, required: true },

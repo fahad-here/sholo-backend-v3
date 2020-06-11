@@ -23,6 +23,7 @@ const bots = {
 }
 
 const stats = {
+    entryPrice: null,
     capitalBtc: null,
     capitalUsd: null,
     totalInitialBtcBalance: null,
@@ -663,6 +664,7 @@ class Simulator {
             if (iterator === candles.length) {
                 this._calculateStats(candle)
                 this.stats.finalCandlePrice = candle[CLOSE]
+                this.stats.entryPrice = this.entryPrice
             }
         }
         return {

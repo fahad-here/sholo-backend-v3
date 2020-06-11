@@ -111,28 +111,34 @@ const _createBot = async (
     const initialBalance = startingBalances[order]
     const direction = order.includes('l') ? 'long' : 'short'
     const { _id: _botSessionId } = botConfigSession
-    return await new BotSchema({
-        _userId,
-        _accountId,
-        _botConfigId,
-        _botSessionId,
-        direction,
-        order,
-        exchange,
-        symbol,
-        initialBalance,
-        balance: initialBalance,
-        priceA,
-        priceB,
-        priceR,
-        priceP: entryPrice,
-        entryPrice,
-        leverage,
-        liquidated: false,
-        marketThreshold,
-        feeType,
-        testNet: accountDetails.testNet
-    }).save()
+    return await BotSchema.findOneAndUpdate(
+        { _botConfigId, order },
+        {
+            $set: {
+                _userId,
+                _accountId,
+                _botConfigId,
+                _botSessionId,
+                direction,
+                order,
+                exchange,
+                symbol,
+                initialBalance,
+                balance: initialBalance,
+                priceA,
+                priceB,
+                priceR,
+                priceP: entryPrice,
+                entryPrice,
+                leverage,
+                liquidated: false,
+                marketThreshold,
+                feeType,
+                testNet: accountDetails.testNet
+            }
+        },
+        { upsert: true, new: true }
+    )
 }
 
 const _changeAccountStatus = async (accountId, inUse) =>
@@ -191,6 +197,7 @@ const _startBot = async (req, res, next, botConfig) => {
                 selectedAccounts[key],
                 true
             )
+
             const bot = await _createBot(
                 key,
                 botConfig,
