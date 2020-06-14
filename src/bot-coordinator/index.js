@@ -3,19 +3,19 @@ const { BotSchema } = DBSchemas
 const { spawn } = require('child_process')
 const RedisClient = require('../data/redis')
 const { promisify } = require('util')
+const parentDir = require('path').resolve(__dirname, '../../.logs/bot_logs/')
+const fs = require('fs')
+const out = fs.openSync(`${parentDir}\\out.log`, 'a')
+const err = fs.openSync(`${parentDir}\\err.log`, 'a')
 let botCoordinator = null
 let BotCoordinatorKey = 'BotCoordinator'
 
 class BotCoordinator {
     startBot(bot) {
-        this.bots[bot._id] = spawn(
-            'node',
-            ['bot.js' /*params to pass to bot.js*/],
-            {
-                detached: true,
-                stdio: ['inherit', out, err, 'ipc']
-            }
-        )
+        this.bots[bot._id] = spawn('node', ['bot.js', bot], {
+            detached: true,
+            stdio: ['inherit', out, err, 'ipc']
+        })
     }
 
     stopBot(botId) {
@@ -31,18 +31,14 @@ class BotCoordinator {
     }
 
     async restartBot(botId) {
-        this.bots[key].send({ command: 'stop', args: { botId: key } })
-        delete this.bots[key]
-        RedisClient.set(BotCoordinatorKey, JSON.stringify(this.bots))
+        this.bots[botId].send({ command: 'stop', args: { botId } })
+        delete this.bots[botId]
     }
 
     async initializeBots() {
-        const getAsync = promisify(RedisClient.get).bind(RedisClient)
-        const cachedBotCoordinator = await getAsync(BotCoordinatorKey)
-        this.bots = JSON.parse(cachedBotCoordinator)
-        await this.killSwitch()
         BotSchema.find({ active: true })
             .then((activeBots) => {
+                console.log(activeBots)
                 if (activeBots.length > 0)
                     activeBots.map((bot) => {
                         this.startBot(bot)
