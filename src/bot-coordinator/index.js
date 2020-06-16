@@ -9,8 +9,6 @@ const parentBotLogDir = require('path').resolve(
 )
 const parentBotsDir = require('path').resolve(__dirname, '../../src/bot')
 const fs = require('fs')
-const out = fs.openSync(`${parentBotLogDir}\\out.log`, 'a')
-const err = fs.openSync(`${parentBotLogDir}\\err.log`, 'a')
 const SocketIOConnection = require('../../src/socketio')
 
 const HEART_BEAT = 5000 //milliseconds
@@ -51,6 +49,9 @@ class BotCoordinator {
     startBot(bot) {
         Logger.info(`start bot  ${bot.order}, botID : ${bot._id}`)
         const connection = SocketIOConnection.connection()
+
+        const out = fs.openSync(`${parentBotLogDir}\\out_${bot._id}.log`, 'a')
+        const err = fs.openSync(`${parentBotLogDir}\\err_${bot._id}.log`, 'a')
         this.bots[bot._id] = fork(
             parentBotsDir,
             [parentBotsDir, JSON.stringify(bot)],
