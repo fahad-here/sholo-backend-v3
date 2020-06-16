@@ -1,6 +1,5 @@
 const { DBConnect, DBSchemas } = require('../../src/api/db')
 const { BotSchema } = DBSchemas
-const SocketIOConnection = require('../../src/socketio')
 const { GetPriceTickerKey, Logger } = require('../../src/utils')
 
 const redis = require('redis')
@@ -9,11 +8,8 @@ const sub = redis.createClient()
 const botClient = redis.createClient()
 const pubClient = redis.createClient()
 
-let connection = SocketIOConnection.connection()
-
 class Bot {
-    _subscribeToEvents() {
-        const bot = this._bot
+    _subscribeToEvents(bot) {
         const exchange = bot.exchange
         const pair = MAP_WS_PAIR_TO_SYMBOL[bot.symbol]
         sub.subscribe(GetPriceTickerKey(exchange, pair), (err, count) => {
@@ -23,30 +19,27 @@ class Bot {
                 } Subscribed to ${count} channel. Listening for updates on the ${GetPriceTickerKey(
                     exchange,
                     pair
-                )} channel.`
+                )} channel. pid: ${process.pid}`
             )
         })
         sub.on('message', async (channel, message) => {
             const parsed = JSON.parse(message)
-            Logger.info(
-                'data on child process ' + process.argv[2],
-                JSON.stringify(parsed)
-            )
             //check for changes here
+            Logger.info(
+                'data on child processs ' + bot.order,
+                parsed
+            )
         })
 
         botClient.subscribe(bot._id, (err, count) => {
             Logger.info(
-                `Child process ${bot._id} Subscribed to ${bot._id} channel. Listening for updates on the ${bot._id} channel.`
+                `Child processs ${bot._id} Subscribed to ${bot._id} channel. Listening for updates on the ${bot._id} channel.`
             )
         })
 
         botClient.on('message', async (channel, message) => {
             const parsed = JSON.parse(message)
-            Logger.info(
-                'data on child process ' + this._bot._id,
-                JSON.stringify(parsed)
-            )
+            Logger.info('Data received on bot channel ' + this._bot._id, parsed)
             if (parsed.disable) {
                 this.stopBot()
             }
@@ -54,7 +47,6 @@ class Bot {
     }
 
     publishStopBot() {
-        console.log(this._botId)
         const data = JSON.stringify({ disable: true })
         pubClient.publish(this._botId, data)
     }
@@ -70,76 +62,76 @@ class Bot {
         )
             .then((bot) => {
                 this._bot = bot
-                for (let id of Object.keys(connection.sockets))
-                    connection.sockets[id].emit(this._botId, bot)
+                //process.send({command: 'socket', args: {channel: `${bot._id}__update`, message: {bot}}})
                 sub.quit()
                 botClient.quit()
                 pubClient.quit()
                 process.exit()
             })
-            .catch((err) => {})
+            .catch((err) => {
+                Logger.info('Error quitting bot : ' + bot._id)
+                Logger.info('Error quitting bot : ', err)
+            })
     }
 
     constructor(bot) {
+        bot = JSON.parse(bot)
+        this._bot = bot
         this._botId = bot._id
         this._userId = bot._userId
-        DBConnect()
+    }
+
+    async connectDB() {
+        await DBConnect()
+    }
+
+    init() {
+        const bot = this._bot
         BotSchema.findOneAndUpdate(
-            { _id: bot._botId, _userId: bot._userId },
-            { $set: { active: true } }
+            { _id: bot._id, _userId: bot._userId },
+            { $set: { active: true } },
+            { new: true }
         )
-            .then((bot) => {
+            .then((data) => {
                 this._bot = bot
-                this._subscribeToEvents()
+                this._subscribeToEvents(bot)
+                process.send({
+                    command: 'socket',
+                    args: {
+                        channel: `${data._id}__update`,
+                        message: { bot: data }
+                    }
+                })
             })
             .catch((err) => {
-                Logger.info('Error starting bot : ' + this._botId)
+                Logger.info('Error starting bot : ' + bot._id)
+                Logger.info('Error starting bot : ' + err)
+                this.stopBot()
             })
     }
 }
 
-/*sub.subscribe(GetPriceTickerKey('bitmex', 'XBTUSD'), (err, count) => {
-    console.log(
-        `Child process ${process.argv[2]} Subscribed to ${count} channel. Listening for updates on the ${GetPriceTickerKey('bitmex', 'XBTUSD')} channel.`
-    )
-})*/
-/*
-sub.on('message', async (channel, message) => {
-    const parsed = JSON.parse(message)
-    console.log('data on child process ' + process.argv[2], parsed)
-})
+async function main() {
+    Logger.info(`pid ${process.pid}`)
+    Logger.info(`bot order ${JSON.parse(process.argv[3]).order}`)
+    const bot = new Bot(process.argv[3])
+    await bot.connectDB()
+    bot.init()
+    process.on('message', ({ command, args }) => {
+        switch (command) {
+            case 'stop':
+                Logger.info(
+                    'Received data from parent process on child process ',
+                    { command, args }
+                )
+                bot.publishStopBot()
+                break
+        }
+    })
 
-botClient.subscribe(process.argv[2], (err, count) => {
-    console.log(
-        `Child process ${process.argv[2]} Subscribed to ${count} channel. Listening for updates on the ${process.argv[2]} channel.`
-    )
-})
+    process.on('exit', () => {
+        Logger.info('exit child')
+    })
+}
 
-botClient.on("message", async (channel, message) => {
-    const parsed = JSON.parse(message)
-    console.log('data on child process ' + process.argv[2], parsed)
-    if (parsed.disable) {
-        sub.quit()
-        botClient.quit()
-        process.exit()
-    }
-})
-
-process.on('message', ({command, args}) => {
-    switch (command) {
-        case 'stop':
-            console.log(args)
-            const data = JSON.stringify({disable: true})
-            pubClient.publish(args.botId, data)
-            break
-    }
-})*/
-const bot = new Bot(process.argv[2])
-
-process.on('message', ({ command, args }) => {
-    switch (command) {
-        case 'stop':
-            bot.publishStopBot()
-            break
-    }
-})
+main()

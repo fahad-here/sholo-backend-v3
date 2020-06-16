@@ -73,7 +73,6 @@ const _toggleAccountInUse = async (accountID, inUseByConfig) =>
 
 const _closeOpenBTCPositions = async (accountId, symbol) => {
     const accountDetails = await AccountSchema.findById({ _id: accountId })
-    Logger.info('Account Details ', accountDetails._doc)
     const exchangeParams = {
         enableRateLimit: true,
         apiKey: accountDetails.apiKey,
@@ -134,6 +133,7 @@ const _createBot = async (
                 liquidated: false,
                 marketThreshold,
                 feeType,
+                enabled: true,
                 testNet: accountDetails.testNet
             }
         },
@@ -144,7 +144,7 @@ const _createBot = async (
 const _changeAccountStatus = async (accountId, inUse) =>
     await AccountSchema.findByIdAndUpdate({ _id: accountId }, { inUse })
 
-const _startBot = async (req, res, next, botConfig) => {
+const _startBot = async (req, res, next, botConfig, _userId) => {
     try {
         let accountCheck = await _checkUniqueAccounts(
             botConfig.selectedAccounts
@@ -185,6 +185,7 @@ const _startBot = async (req, res, next, botConfig) => {
             leverage,
             marketThreshold,
             feeType,
+            _userId,
             startedAt: new Date()
         }).save()
         let bots = []
@@ -207,7 +208,7 @@ const _startBot = async (req, res, next, botConfig) => {
             bots.push(bot)
         }
         //update the bot config with the session
-        //enable all the bots
+        //set bots to active so that coordinator picks it up
         const savedBotConfig = await BotConfigSchema.findByIdAndUpdate(
             { _id: botConfig._id },
             {
@@ -218,9 +219,6 @@ const _startBot = async (req, res, next, botConfig) => {
             },
             { new: true }
         )
-        for (let i = 0; i < bots.length; i++) {
-            //await enableBot(bots[i])
-        }
         return res.json(
             ResponseMessage(false, 'Bot configuration is now active', {
                 botConfig: savedBotConfig,
@@ -479,7 +477,8 @@ async function runBotConfigAction(req, res, next) {
     try {
         let { action, id } = req.params
         let _userId = req.user._id
-        if (action !== 'start' || action !== 'stop' || action !== 'kill') {
+        console.log(action)
+        if (action !== 'start' && action !== 'stop' && action !== 'kill') {
             return res
                 .status(403)
                 .json(

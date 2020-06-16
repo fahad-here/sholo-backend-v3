@@ -1,20 +1,73 @@
 const { DBSchemas } = require('../api/db')
 const { BotSchema } = DBSchemas
-const { spawn } = require('child_process')
-const RedisClient = require('../data/redis')
+const { fork } = require('child_process')
+const { Logger } = require('../utils')
 const { promisify } = require('util')
-const parentDir = require('path').resolve(__dirname, '../../.logs/bot_logs/')
+const parentBotLogDir = require('path').resolve(
+    __dirname,
+    '../../.logs/bot_logs/'
+)
+const parentBotsDir = require('path').resolve(__dirname, '../../src/bot')
 const fs = require('fs')
-const out = fs.openSync(`${parentDir}\\out.log`, 'a')
-const err = fs.openSync(`${parentDir}\\err.log`, 'a')
+const out = fs.openSync(`${parentBotLogDir}\\out.log`, 'a')
+const err = fs.openSync(`${parentBotLogDir}\\err.log`, 'a')
+const SocketIOConnection = require('../../src/socketio')
+
+const HEART_BEAT = 5000 //milliseconds
+
 let botCoordinator = null
-let BotCoordinatorKey = 'BotCoordinator'
 
 class BotCoordinator {
+    _exitGracefully() {
+        const connection = SocketIOConnection.connection()
+        for (let key of Object.keys(this.bots)) {
+            for (let id of Object.keys(connection.sockets))
+                connection.sockets[id].emit(
+                    `${key}__update`,
+                    JSON.stringify({
+                        bot: null,
+                        statusUpdate: { active: false }
+                    })
+                )
+            this.stopBot(key)
+        }
+    }
+
+    _processHandlers() {
+        ;[
+            `exit`,
+            `SIGINT`,
+            `SIGUSR1`,
+            `SIGUSR2`,
+            `uncaughtException`,
+            `SIGTERM`
+        ].forEach((eventType) => {
+            process.on(eventType, (eventType, exitCode) => {
+                this._exitGracefully()
+            })
+        })
+    }
+
     startBot(bot) {
-        this.bots[bot._id] = spawn('node', ['bot.js', bot], {
-            detached: true,
-            stdio: ['inherit', out, err, 'ipc']
+        Logger.info(`start bot  ${bot.order}, botID : ${bot._id}`)
+        const connection = SocketIOConnection.connection()
+        this.bots[bot._id] = fork(
+            parentBotsDir,
+            [parentBotsDir, JSON.stringify(bot)],
+            {
+                detached: true,
+                stdio: ['ignore', out, err, 'ipc']
+            }
+        )
+        this.bots[bot._id].on('message', ({ command, args }) => {
+            const { channel, message } = args
+            if (command === 'socket') {
+                for (let id of Object.keys(connection.sockets))
+                    connection.sockets[id].emit(
+                        channel,
+                        JSON.stringify(message)
+                    )
+            }
         })
     }
 
@@ -26,27 +79,33 @@ class BotCoordinator {
         for (let key of Object.keys(this.bots)) {
             await this.bots[key].send({ command: 'stop', args: { botId: key } })
             delete this.bots[key]
-            RedisClient.set(BotCoordinatorKey, JSON.stringify(this.bots))
         }
     }
 
-    async restartBot(botId) {
+    restartBot(botId) {
         this.bots[botId].send({ command: 'stop', args: { botId } })
         delete this.bots[botId]
     }
 
-    async initializeBots() {
-        BotSchema.find({ active: true })
-            .then((activeBots) => {
-                console.log(activeBots)
-                if (activeBots.length > 0)
-                    activeBots.map((bot) => {
-                        this.startBot(bot)
-                    })
-            })
-            .catch((err) => {
-                throw new Error('Error starting up active bots')
-            })
+    initializeBots() {
+        this._processHandlers()
+        setInterval(() => {
+            BotSchema.find({ active: false, enabled: true })
+                .then((activeBots) => {
+                    Logger.info(
+                        'Checking for enabled inactive bots: ' +
+                            activeBots.length
+                    )
+                    if (activeBots.length > 0)
+                        activeBots.map((bot) => {
+                            this.startBot(bot)
+                        })
+                })
+                .catch((err) => {
+                    Logger.error('Error ', err)
+                    throw new Error('Error starting up active bots')
+                })
+        }, HEART_BEAT)
     }
 
     constructor() {

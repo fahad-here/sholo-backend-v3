@@ -35,14 +35,14 @@ async function createNewAccount(req, res, next) {
         let exchangeClass = await GetExchangeClass(exchange, exchangeParams)
         if (testNet) exchangeClass.setTestNet()
         const balance = await exchangeClass.getFetchBalance()
-        const userID = res.locals.user._id
+        const _userId = req.user._id
         const createRes = await new AccountSchema({
             accountName,
             accountType,
             exchange,
             apiKey,
             apiSecret,
-            userID,
+            _userId,
             balance,
             testNet
         }).save()
@@ -56,7 +56,7 @@ async function createNewAccount(req, res, next) {
                           exchange,
                           apiKey,
                           apiSecret,
-                          userID,
+                          _userId,
                           testNet,
                           balance
                       }

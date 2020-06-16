@@ -16,7 +16,8 @@ const DBConnect = () => {
     mongoose.connect(dbURL, {
         auto_reconnect: true,
         useNewUrlParser: true,
-        useUnifiedTopology: true
+        useUnifiedTopology: true,
+        useFindAndModify: false
     })
 }
 
