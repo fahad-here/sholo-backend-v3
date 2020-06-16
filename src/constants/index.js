@@ -67,6 +67,10 @@ const MAP_WS_PAIR_TO_SYMBOL = {
 const CREATE_LIMIT_ORDER = 'createLimitOrder'
 const CREATE_MARKET_ORDER = 'createMarketOrder'
 
+const SHOLO_STRATEGY = 'SHOLO_V3'
+
+const ALLOWED_STRATEGIES = [SHOLO_STRATEGY]
+
 module.exports = {
     FEES,
     CANDLE_POSITIONS,
@@ -82,5 +86,7 @@ module.exports = {
     BITMEX_SYMBOLS,
     OTHER_SYMBOLS,
     CREATE_LIMIT_ORDER,
-    CREATE_MARKET_ORDER
+    CREATE_MARKET_ORDER,
+    ALLOWED_STRATEGIES,
+    SHOLO_STRATEGY
 }

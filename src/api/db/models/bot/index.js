@@ -1,5 +1,8 @@
 const mongoose = require('mongoose')
-const { ALLOWED_EXCHANGES } = require('../../../../constants')
+const {
+    ALLOWED_EXCHANGES,
+    ALLOWED_STRATEGIES
+} = require('../../../../constants')
 const AutoIncrement = require('mongoose-sequence')(mongoose)
 
 const BotSchema = new mongoose.Schema({
@@ -53,6 +56,11 @@ const BotSchema = new mongoose.Schema({
     realisedPnl: { type: Number, default: 0 },
     marketThreshold: {
         type: Number
+    },
+    strategy: {
+        type: String,
+        required: true,
+        enum: [...ALLOWED_STRATEGIES]
     },
     feeType: { type: String, required: true, enum: ['maker', 'taker'] },
     active: {

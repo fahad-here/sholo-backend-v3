@@ -1,5 +1,8 @@
 const mongoose = require('mongoose')
-const { ALLOWED_EXCHANGES } = require('../../../../constants')
+const {
+    ALLOWED_EXCHANGES,
+    ALLOWED_STRATEGIES
+} = require('../../../../constants')
 const AutoIncrement = require('mongoose-sequence')(mongoose)
 
 const BotConfigSessionSchema = new mongoose.Schema({
@@ -30,6 +33,11 @@ const BotConfigSessionSchema = new mongoose.Schema({
     active: {
         type: Boolean,
         default: false
+    },
+    strategy: {
+        type: String,
+        required: true,
+        enum: [...ALLOWED_STRATEGIES]
     },
     startedAt: {
         type: Date

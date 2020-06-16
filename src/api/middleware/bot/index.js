@@ -1,3 +1,4 @@
+const { SHOLO_STRATEGY } = require('../../../constants')
 const { ResponseMessage, GetExchangeClass } = require('../../../utils')
 const { DBSchemas } = require('../../db/index')
 const {
@@ -104,7 +105,8 @@ const _createBot = async (
         priceR,
         leverage,
         marketThreshold,
-        feeType
+        feeType,
+        strategy
     } = botConfig
     const _accountId = accountDetails._id
     const initialBalance = startingBalances[order]
@@ -134,7 +136,8 @@ const _createBot = async (
                 marketThreshold,
                 feeType,
                 enabled: true,
-                testNet: accountDetails.testNet
+                testNet: accountDetails.testNet,
+                strategy
             }
         },
         { upsert: true, new: true }
@@ -165,7 +168,8 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
             leverage,
             marketThreshold,
             feeType,
-            active
+            active,
+            strategy
         } = botConfig
         if (active)
             return res
@@ -186,7 +190,8 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
             marketThreshold,
             feeType,
             _userId,
-            startedAt: new Date()
+            startedAt: new Date(),
+            strategy
         }).save()
         let bots = []
         for (let key of Object.keys(selectedAccounts)) {
@@ -262,6 +267,7 @@ async function createBotConfig(req, res, next) {
             leverage,
             marketThreshold
         } = req.body
+        const strategy = SHOLO_STRATEGY
         const _userId = req.user._id
         let check = _checkUniqueAccounts(selectedAccounts)
         if (!check)
@@ -310,7 +316,8 @@ async function createBotConfig(req, res, next) {
             entryPrice,
             leverage,
             marketThreshold,
-            _userId
+            _userId,
+            strategy
         }).save()
         for (let key of Object.keys(botConfig.selectedAccounts))
             await _toggleAccountInUse(botConfig.selectedAccounts[key], true)
@@ -477,7 +484,6 @@ async function runBotConfigAction(req, res, next) {
     try {
         let { action, id } = req.params
         let _userId = req.user._id
-        console.log(action)
         if (action !== 'start' && action !== 'stop' && action !== 'kill') {
             return res
                 .status(403)
