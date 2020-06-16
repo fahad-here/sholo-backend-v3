@@ -1,9 +1,11 @@
+import { Factory } from '../strategy'
+
 const { DBConnect, DBSchemas } = require('../../src/api/db')
 const { BotSchema } = DBSchemas
 const { GetPriceTickerKey, Logger } = require('../../src/utils')
 
 const redis = require('redis')
-const { MAP_WS_PAIR_TO_SYMBOL } = require('../../src/constants')
+const { MAP_WS_PAIR_TO_SYMBOL, SHOLO_STRATEGY } = require('../../src/constants')
 const sub = redis.createClient()
 const botClient = redis.createClient()
 const pubClient = redis.createClient()
@@ -28,6 +30,8 @@ class Bot {
             Logger.info(
                 `Data on child process ${bot._id}  bot order: ${bot.order}:  ${message}`
             )
+            //set trader here, create the buy and sell signals here as well
+            //Factory(SHOLO_STRATEGY)
         })
 
         botClient.subscribe(bot._id, (err, count) => {
