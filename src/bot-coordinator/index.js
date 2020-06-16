@@ -90,15 +90,28 @@ class BotCoordinator {
     initializeBots() {
         this._processHandlers()
         setInterval(() => {
-            BotSchema.find({ active: false, enabled: true })
-                .then((activeBots) => {
-                    Logger.info(
-                        'Checking for enabled inactive bots: ' +
-                            activeBots.length
+            Logger.info('Checking for bot state changes ')
+            BotSchema.find({})
+                .then((bots) => {
+                    let enabledAndInactiveBots = bots.filter(
+                        (bot) => bot.enabled && !bot.active
                     )
-                    if (activeBots.length > 0)
-                        activeBots.map((bot) => {
+                    let disabledAndActiveBots = bots.filter(
+                        (bot) => !bot.enabled && bot.active
+                    )
+                    Logger.info(
+                        `Enabled and inactive bots: ${enabledAndInactiveBots.length}`
+                    )
+                    Logger.info(
+                        `Disabled and active bots: ${disabledAndActiveBots.length}`
+                    )
+                    if (enabledAndInactiveBots.length > 0)
+                        enabledAndInactiveBots.map((bot) => {
                             this.startBot(bot)
+                        })
+                    if (disabledAndActiveBots.length > 0)
+                        disabledAndActiveBots.map((bot) => {
+                            this.stopBot(bot._id)
                         })
                 })
                 .catch((err) => {

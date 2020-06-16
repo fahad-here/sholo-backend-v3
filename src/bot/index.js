@@ -26,14 +26,14 @@ class Bot {
             const parsed = JSON.parse(message)
             //check for changes here
             Logger.info(
-                'data on child processs ' + bot.order,
-                parsed
+                `Data on child process ${bot._id}  bot order: ${bot.order}:  ${message}`
             )
         })
 
         botClient.subscribe(bot._id, (err, count) => {
             Logger.info(
-                `Child processs ${bot._id} Subscribed to ${bot._id} channel. Listening for updates on the ${bot._id} channel.`
+                `Child processs ${bot._id} Subscribed to ${bot._id} 
+                channel. Listening for updates on the ${bot._id} channel.`
             )
         })
 
