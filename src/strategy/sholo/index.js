@@ -1,7 +1,17 @@
 const Strategy = require('../base')
 
 class Sholo extends Strategy {
-    async run(realtime, currentCandle) {}
+    constructor(
+        onBuySignal,
+        onSellSignal,
+        onLiquidatedSignal,
+        onPriceRReachedSignal
+    ) {
+        super(onBuySignal, onSellSignal, onLiquidatedSignal)
+        this.onPriceRReachedSignal = onPriceRReachedSignal
+    }
+
+    async run(realtime, currentCandlePrice, timestamp) {}
 }
 
 module.exports = Sholo

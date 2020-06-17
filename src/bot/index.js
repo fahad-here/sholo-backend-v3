@@ -15,7 +15,13 @@ class Bot {
 
     onSellSignal() {}
 
-    onTickerPriceReceived(price, timestamp) {}
+    onLiquidatedSignal() {}
+
+    onPriceRReachedSignal() {}
+
+    async onTickerPriceReceived(price, timestamp) {
+        await this._strategy.run(true, price, timestamp)
+    }
 
     _subscribeToEvents(bot) {
         const exchange = bot.exchange
@@ -96,7 +102,9 @@ class Bot {
         this._strategy = Factory(
             bot.strategy ? bot.strategy : SHOLO_STRATEGY,
             this.onBuySignal,
-            this.onSellSignal
+            this.onSellSignal,
+            this.onLiquidatedSignal,
+            this.onPriceRReachedSignal
         )
     }
 
