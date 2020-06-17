@@ -1,4 +1,4 @@
-import { Factory } from '../strategy'
+const { Factory } = require('../strategy')
 
 const { DBConnect, DBSchemas } = require('../../src/api/db')
 const { BotSchema } = DBSchemas
@@ -6,7 +6,7 @@ const { GetPriceTickerKey, Logger } = require('../../src/utils')
 
 const redis = require('redis')
 const { MAP_WS_PAIR_TO_SYMBOL, SHOLO_STRATEGY } = require('../../src/constants')
-const sub = redis.createClient()
+const priceSubscriptionClient = redis.createClient()
 const botClient = redis.createClient()
 const pubClient = redis.createClient()
 
@@ -15,27 +15,31 @@ class Bot {
 
     onSellSignal() {}
 
-    onTickerPriceReceived() {}
+    onTickerPriceReceived(price) {}
 
     _subscribeToEvents(bot) {
         const exchange = bot.exchange
         const pair = MAP_WS_PAIR_TO_SYMBOL[bot.symbol]
-        sub.subscribe(GetPriceTickerKey(exchange, pair), (err, count) => {
-            Logger.info(
-                `Child process ${
-                    bot._id
-                } Subscribed to ${count} channel. Listening for updates on the ${GetPriceTickerKey(
-                    exchange,
-                    pair
-                )} channel. pid: ${process.pid}`
-            )
-        })
-        sub.on('message', async (channel, message) => {
-            const parsed = JSON.parse(message)
+        priceSubscriptionClient.subscribe(
+            GetPriceTickerKey(exchange, pair),
+            (err, count) => {
+                Logger.info(
+                    `Child process ${
+                        bot._id
+                    } Subscribed to ${count} channel. Listening for updates on the ${GetPriceTickerKey(
+                        exchange,
+                        pair
+                    )} channel. pid: ${process.pid}`
+                )
+            }
+        )
+        priceSubscriptionClient.on('message', async (channel, message) => {
+            const parsedData = JSON.parse(message)
             //check for changes here
             Logger.info(
                 `Data on child process ${bot._id}  bot order: ${bot.order}:  ${message}`
             )
+            this.onTickerPriceReceived(parsedData.price)
             //set trader here, create the buy and sell signals here as well
         })
 
