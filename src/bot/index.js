@@ -11,6 +11,12 @@ const botClient = redis.createClient()
 const pubClient = redis.createClient()
 
 class Bot {
+    onBuySignal() {}
+
+    onSellSignal() {}
+
+    onTickerPriceReceived() {}
+
     _subscribeToEvents(bot) {
         const exchange = bot.exchange
         const pair = MAP_WS_PAIR_TO_SYMBOL[bot.symbol]
@@ -31,7 +37,6 @@ class Bot {
                 `Data on child process ${bot._id}  bot order: ${bot.order}:  ${message}`
             )
             //set trader here, create the buy and sell signals here as well
-            //Factory(SHOLO_STRATEGY)
         })
 
         botClient.subscribe(bot._id, (err, count) => {
@@ -83,6 +88,8 @@ class Bot {
         this._bot = bot
         this._botId = bot._id
         this._userId = bot._userId
+        //uses the strategy passed in by the bot if exists
+        this._strategy = Factory(bot.strategy ? bot.strategy : SHOLO_STRATEGY)
     }
 
     async connectDB() {
