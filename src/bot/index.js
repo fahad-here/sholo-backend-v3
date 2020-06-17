@@ -15,7 +15,7 @@ class Bot {
 
     onSellSignal() {}
 
-    onTickerPriceReceived(price) {}
+    onTickerPriceReceived(price, timestamp) {}
 
     _subscribeToEvents(bot) {
         const exchange = bot.exchange
@@ -39,7 +39,7 @@ class Bot {
             Logger.info(
                 `Data on child process ${bot._id}  bot order: ${bot.order}:  ${message}`
             )
-            this.onTickerPriceReceived(parsedData.price)
+            this.onTickerPriceReceived(parsedData.price, parsedData.timestamp)
             //set trader here, create the buy and sell signals here as well
         })
 
@@ -93,7 +93,11 @@ class Bot {
         this._botId = bot._id
         this._userId = bot._userId
         //uses the strategy passed in by the bot if exists
-        this._strategy = Factory(bot.strategy ? bot.strategy : SHOLO_STRATEGY)
+        this._strategy = Factory(
+            bot.strategy ? bot.strategy : SHOLO_STRATEGY,
+            this.onBuySignal,
+            this.onSellSignal
+        )
     }
 
     async connectDB() {
