@@ -62,6 +62,10 @@ const BotSchema = new mongoose.Schema({
     marketThreshold: {
         type: Number
     },
+    positionOpen: {
+        type: Boolean,
+        default: false
+    },
     strategy: {
         type: String,
         required: true,
