@@ -6,11 +6,16 @@ const FEE_MAKER = -0.025
 const FEE_TAKER = 0.075
 const FEE_FIFTY_FIFTY = 0.05
 
+const LIMIT_FEES = -0.00025
+const MARKET_FEES = 0.00075
+
 const FEES = {
     [FEE_TYPE_MAKER]: FEE_MAKER,
     [FEE_TYPE_TAKER]: FEE_TAKER,
     [FEE_TYPE_FIFTY_FIFTY]: FEE_FIFTY_FIFTY
 }
+
+const BITMEX_FEE_CUTOFF = 0.005
 
 const CANDLE_TIME_FRAME_POSITION = 0
 const CANDLE_OPEN_POSITION = 1
@@ -53,6 +58,8 @@ const POSITION_SHORT = 'short'
 const BUY = 'buy'
 const SELL = 'sell'
 
+const BTC = 'BTC'
+
 const ALLOWED_ACCOUNT_TYPES = [POSITION_SHORT, POSITION_LONG]
 
 const DEFAULT_MARKET_THRESHOLD = 10 // USD
@@ -93,5 +100,9 @@ module.exports = {
     ALLOWED_STRATEGIES,
     SHOLO_STRATEGY,
     BUY,
-    SELL
+    SELL,
+    BITMEX_FEE_CUTOFF,
+    BTC,
+    LIMIT_FEES,
+    MARKET_FEES
 }

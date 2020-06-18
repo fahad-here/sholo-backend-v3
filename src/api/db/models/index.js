@@ -6,6 +6,8 @@ const AccountSchema = require('./account')
 const BotConfigSchema = require('./bot-config')
 const BotConfigSessionSchema = require('./bot-config-session')
 const BotSchema = require('./bot')
+const OrderSchema = require('./order')
+
 const DBSchemas = {
     UserSchema,
     TokenSchema,
@@ -14,7 +16,8 @@ const DBSchemas = {
     AccountSchema,
     BotConfigSchema,
     BotConfigSessionSchema,
-    BotSchema
+    BotSchema,
+    OrderSchema
 }
 
 module.exports = DBSchemas

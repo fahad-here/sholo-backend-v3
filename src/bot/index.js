@@ -3,15 +3,21 @@ const BigNumber = require('bignumber.js')
 const { Factory } = require('../strategy')
 
 const { DBConnect, DBSchemas } = require('../../src/api/db')
-const { BotSchema } = DBSchemas
+const { BotSchema, OrderSchema } = DBSchemas
 const { GetPriceTickerKey, Logger } = require('../../src/utils')
 
 const redis = require('redis')
 const { POSITION_SHORT, SELL, BUY } = require('../constants')
 const {
     FEES,
+    BITMEX_FEE_CUTOFF,
     MAP_WS_PAIR_TO_SYMBOL,
-    SHOLO_STRATEGY
+    SHOLO_STRATEGY,
+    BTC,
+    LIMIT_FEES,
+    MARKET_FEES,
+    FEE_TYPE_MAKER,
+    FEE_TYPE_TAKER
 } = require('../../src/constants')
 const priceSubscriptionClient = redis.createClient()
 const botClient = redis.createClient()
@@ -33,30 +39,77 @@ class Bot {
         )
     }
 
-    _calculateFees(currentPriceUSD) {
+    async _calculateFees(preOrderBalance) {
+        const postOrderBalance = await this._trader.getBalance()
+        const difference = this._bot.positionOpen
+            ? postOrderBalance.free[BTC] - preOrderBalance.free[BTC]
+            : preOrderBalance.free[BTC] - postOrderBalance.free[BTC]
         const feePercent = FEES[this._bot.feeType]
-        const balance = this._bot.balance
-        const leverage = this._bot.leverage
-        if (new BigNumber(balance).isGreaterThan(0)) {
-            const txFees = new BigNumber(balance)
-                .multipliedBy(leverage)
-                .multipliedBy(feePercent)
-                .dividedBy(100)
-                .toFixed(8)
-            const txFeesUsd = new BigNumber(txFees)
-                .multipliedBy(currentPriceUSD)
-                .toFixed(8)
+        let fees = 0
+        switch (feePercent) {
+            case FEE_TYPE_MAKER:
+                fees = difference * LIMIT_FEES
+                return fees
+            case FEE_TYPE_TAKER:
+                fees = difference * MARKET_FEES
+                return fees
+            default:
+                fees = difference * MARKET_FEES
+                return fees
         }
     }
 
-    _calculateAmount(txFees) {
+    async _calculateAmount(currentUsdPrice) {
+        let amount = 0
+        let margin = 0
         const balance = this._bot.balance
         const leverage = this._bot.leverage
-        const amount = new BigNumber(balance)
-            .minus(txFees)
-            .multipliedBy(leverage)
+        if (this._bot.positionOpen) {
+            const previousOrder = await OrderSchema.findById({
+                _id: this._bot._previousOrderId
+            })
+            amount = new BigNumber(previousOrder.amount).integerValue(
+                BigNumber.ROUND_DOWN
+            )
+        } else {
+            const tradeBalanceBtc = new BigNumber(balance)
+                .multipliedBy(leverage)
+                .toFixed(8)
+            const tradeFees = new BigNumber(tradeBalanceBtc)
+                .multipliedBy(BITMEX_FEE_CUTOFF)
+                .toFixed(8)
+            margin = new BigNumber(tradeBalanceBtc).minus(tradeFees).toFixed(8)
+            amount = new BigNumber(margin)
+                .multipliedBy(currentUsdPrice)
+                .multipliedBy(0.96)
+                .integerValue(BigNumber.ROUND_DOWN)
+        }
+        return { amount, margin }
+    }
+
+    _calculateLiquidation(amount, currentUsdPrice) {
+        const contractVal = new BigNumber(1)
+            .dividedBy(currentUsdPrice)
             .toFixed(8)
-        const margin = new BigNumber(balance).minus(txFees).toFixed(8)
+        const positionVal = new BigNumber(amount)
+            .multipliedBy(contractVal)
+            .toFixed(8)
+        const takerFee = new BigNumber(0.00075).multipliedBy(positionVal)
+        const initialMargin = new BigNumber(1)
+            .dividedBy(this._bot.leverage)
+            .minus(new BigNumber(takerFee).multipliedBy(2))
+            .toFixed(8)
+        const maintenanceMargin = new BigNumber(0.005)
+            .multipliedBy(takerFee)
+            .toFixed()
+        const bankrupt = new BigNumber(currentUsdPrice)
+            .dividedBy(new BigNumber(1).plus(initialMargin))
+            .toFixed()
+        const liquidation = new BigNumber(bankrupt).minus(
+            new BigNumber(currentUsdPrice).multipliedBy(
+                new BigNumber(maintenanceMargin).plus(0.000375)
+            )
+        )
     }
 
     async onBuySignal(price, timestamp) {
@@ -64,11 +117,17 @@ class Bot {
             const side =
                 this._account.accountType === POSITION_SHORT ? SELL : BUY
             //calculate fees before placing order
-            const { txFees, txFeesUsd } = this._calculateFees(price)
-            const order = await this._trader.createMarketOrder(
-                side,
-                this._bot.balance
-            )
+            const preOrderBalance = await this._trader.getBalance()
+            const { amount, margin } = this._calculateAmount(price)
+            const {
+                liquidation,
+                bankrupt
+            } = this._trader.exchange
+                .getExchange()
+                ._calculateLiquidation(amount, price)
+            const order = await this._trader.createMarketOrder(side, amount)
+            const fees = await this._calculateFees(preOrderBalance)
+            //await new OrderSchema({}).save()
             // save this order in db
             // create a position
             // subscribe to ws updates on the position

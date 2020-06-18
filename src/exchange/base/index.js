@@ -68,6 +68,10 @@ class BaseExchange {
         throw new Error('Need to implement this method')
     }
 
+    static _calculateLiquidation() {
+        throw new Error('Need to implement this method')
+    }
+
     async createMarketOrder(symbol, side, amount, params = {}) {
         if (!this.exchange.has[CREATE_MARKET_ORDER])
             throw new Error('This exchange does not support market orders')

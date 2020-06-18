@@ -8,6 +8,10 @@ class Trade {
         if (testNet) this.exchange.setTestNet()
     }
 
+    getBalance() {
+        return this.exchange.getFetchBalance()
+    }
+
     setPair(pair) {
         this.pair = pair
         this.symbol = MAP_WS_PAIR_TO_SYMBOL[pair]
