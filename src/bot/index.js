@@ -5,22 +5,61 @@ const { BotSchema } = DBSchemas
 const { GetPriceTickerKey, Logger } = require('../../src/utils')
 
 const redis = require('redis')
+const { POSITION_SHORT, SELL, BUY } = require('../constants')
 const { MAP_WS_PAIR_TO_SYMBOL, SHOLO_STRATEGY } = require('../../src/constants')
 const priceSubscriptionClient = redis.createClient()
 const botClient = redis.createClient()
 const pubClient = redis.createClient()
 
 class Bot {
-    onBuySignal() {}
+    constructor(bot) {
+        bot = JSON.parse(bot)
+        this._bot = bot
+        this._botId = bot._id
+        this._userId = bot._userId
+        //uses the strategy passed in by the bot if exists
+        this._strategy = Factory(
+            bot.strategy ? bot.strategy : SHOLO_STRATEGY,
+            this.onBuySignal,
+            this.onSellSignal,
+            this.onLiquidatedSignal,
+            this.onPriceRReachedSignal
+        )
+    }
 
-    onSellSignal() {}
+    async onBuySignal(price, timestamp) {
+        try {
+            const side =
+                this._account.accountType === POSITION_SHORT ? SELL : BUY
+            //calculate fees before placing order
+            const order = await this._trader.createMarketOrder(
+                side,
+                this._bot.balance
+            )
+            // save this order in db
+            // create a position
+            // subscribe to ws updates on the position
+            // update db on ws updates
+            // update bot with new price p value
+            // update liquidation price
+            // send the updates via sockets to frontend
+        } catch (e) {
+            Logger.error(`Error on buy signal `, e)
+        }
+    }
+
+    onSellSignal(price, timestamp) {}
 
     onLiquidatedSignal() {}
 
     onPriceRReachedSignal() {}
 
     async onTickerPriceReceived(price, timestamp) {
-        await this._strategy.run(true, price, timestamp)
+        try {
+            await this._strategy.run(true, price, timestamp)
+        } catch (e) {
+            Logger.error(`Error running bot strategy `, e)
+        }
     }
 
     _subscribeToEvents(bot) {
@@ -93,23 +132,28 @@ class Bot {
             })
     }
 
-    constructor(bot) {
-        bot = JSON.parse(bot)
-        this._bot = bot
-        this._botId = bot._id
-        this._userId = bot._userId
-        //uses the strategy passed in by the bot if exists
-        this._strategy = Factory(
-            bot.strategy ? bot.strategy : SHOLO_STRATEGY,
-            this.onBuySignal,
-            this.onSellSignal,
-            this.onLiquidatedSignal,
-            this.onPriceRReachedSignal
-        )
-    }
-
     async connectDB() {
         await DBConnect()
+    }
+
+    async _setUpTrader() {
+        AccountSchema.findById({ _id: this._bot._accountId })
+            .then((account) => {
+                this._account = account
+                this._trader = new Trade(
+                    account.exchange,
+                    {
+                        apiKey: account.apiKey,
+                        secret: account.apiSecret
+                    },
+                    account.testNet
+                )
+                this._trader.setLeverage(account.leverage)
+                this._trader.setPair(account.symbol)
+            })
+            .catch((err) => {
+                Logger.error(`Error setting up trader, `, err)
+            })
     }
 
     init() {

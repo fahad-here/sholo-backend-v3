@@ -1,5 +1,10 @@
 const ccxt = require('ccxt')
-const { CREATE_MARKET_ORDER, CREATE_LIMIT_ORDER } = require('../../constants')
+const {
+    CREATE_MARKET_ORDER,
+    CREATE_LIMIT_ORDER,
+    BUY,
+    SELL
+} = require('../../constants')
 
 class BaseExchange {
     constructor(id, options = { enableRateLimit: true }) {
@@ -66,12 +71,20 @@ class BaseExchange {
     async createMarketOrder(symbol, side, amount, params = {}) {
         if (!this.exchange.has[CREATE_MARKET_ORDER])
             throw new Error('This exchange does not support market orders')
-        return await this.exchange.createMarketOrder(
-            symbol,
-            side,
-            amount,
-            params
-        )
+        switch (side) {
+            case BUY:
+                return await this.exchange.createMarketBuyOrder(
+                    symbol,
+                    amount,
+                    params
+                )
+            case SELL:
+                return await this.exchange.createMarketSellOrder(
+                    symbol,
+                    amount,
+                    params
+                )
+        }
     }
 
     async createLimitOrder(symbol, side, amount, price, params) {

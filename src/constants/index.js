@@ -50,6 +50,9 @@ const ALLOWED_TIME_FRAMES = [
 const POSITION_LONG = 'long'
 const POSITION_SHORT = 'short'
 
+const BUY = 'buy'
+const SELL = 'sell'
+
 const ALLOWED_ACCOUNT_TYPES = [POSITION_SHORT, POSITION_LONG]
 
 const DEFAULT_MARKET_THRESHOLD = 10 // USD
@@ -88,5 +91,7 @@ module.exports = {
     CREATE_LIMIT_ORDER,
     CREATE_MARKET_ORDER,
     ALLOWED_STRATEGIES,
-    SHOLO_STRATEGY
+    SHOLO_STRATEGY,
+    BUY,
+    SELL
 }

@@ -7,7 +7,6 @@ class Bitmex extends BaseExchange {
     }
 
     async setLeverage(leverage, symbol) {
-        super.setLeverage(leverage, symbol)
         return await this.exchange.privatePostPositionLeverage({
             symbol,
             leverage
