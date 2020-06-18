@@ -26,6 +26,11 @@ const BotSchema = new mongoose.Schema({
         required: true,
         ref: 'bot-config-session'
     },
+    _previousOrderId: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'order'
+    },
     side: {
         type: String,
         required: true,

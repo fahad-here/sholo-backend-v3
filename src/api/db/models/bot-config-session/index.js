@@ -25,6 +25,10 @@ const BotConfigSessionSchema = new mongoose.Schema({
     priceA: { type: Number, required: true },
     priceB: { type: Number, required: true },
     priceR: { type: Number, required: true },
+    orderSequence: {
+        type: Number,
+        default: 1
+    },
     leverage: { type: Number, default: 1, max: 100, min: 1 },
     marketThreshold: {
         type: Number

@@ -1,3 +1,5 @@
+const BigNumber = require('bignumber.js')
+
 const { Factory } = require('../strategy')
 
 const { DBConnect, DBSchemas } = require('../../src/api/db')
@@ -6,7 +8,11 @@ const { GetPriceTickerKey, Logger } = require('../../src/utils')
 
 const redis = require('redis')
 const { POSITION_SHORT, SELL, BUY } = require('../constants')
-const { MAP_WS_PAIR_TO_SYMBOL, SHOLO_STRATEGY } = require('../../src/constants')
+const {
+    FEES,
+    MAP_WS_PAIR_TO_SYMBOL,
+    SHOLO_STRATEGY
+} = require('../../src/constants')
 const priceSubscriptionClient = redis.createClient()
 const botClient = redis.createClient()
 const pubClient = redis.createClient()
@@ -27,11 +33,38 @@ class Bot {
         )
     }
 
+    _calculateFees(currentPriceUSD) {
+        const feePercent = FEES[this._bot.feeType]
+        const balance = this._bot.balance
+        const leverage = this._bot.leverage
+        if (new BigNumber(balance).isGreaterThan(0)) {
+            const txFees = new BigNumber(balance)
+                .multipliedBy(leverage)
+                .multipliedBy(feePercent)
+                .dividedBy(100)
+                .toFixed(8)
+            const txFeesUsd = new BigNumber(txFees)
+                .multipliedBy(currentPriceUSD)
+                .toFixed(8)
+        }
+    }
+
+    _calculateAmount(txFees) {
+        const balance = this._bot.balance
+        const leverage = this._bot.leverage
+        const amount = new BigNumber(balance)
+            .minus(txFees)
+            .multipliedBy(leverage)
+            .toFixed(8)
+        const margin = new BigNumber(balance).minus(txFees).toFixed(8)
+    }
+
     async onBuySignal(price, timestamp) {
         try {
             const side =
                 this._account.accountType === POSITION_SHORT ? SELL : BUY
             //calculate fees before placing order
+            const { txFees, txFeesUsd } = this._calculateFees(price)
             const order = await this._trader.createMarketOrder(
                 side,
                 this._bot.balance
