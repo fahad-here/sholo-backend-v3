@@ -19,7 +19,7 @@ const OrderSchema = new Schema(
             required: true,
             ref: 'bot-config'
         },
-        _botConfigSessionId: {
+        _botSessionId: {
             type: Schema.Types.ObjectId,
             required: true,
             ref: 'bot-config-session'
@@ -70,8 +70,8 @@ const OrderSchema = new Schema(
         pair: {
             type: String
         },
-        enterExit: {
-            type: String
+        isExit: {
+            type: Boolean
         },
         leverage: {
             type: String
