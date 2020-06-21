@@ -21,8 +21,9 @@ class BotCoordinator {
         for (let key of Object.keys(this.bots)) {
             for (let id of Object.keys(connection.sockets))
                 connection.sockets[id].emit(
-                    `${key}__update`,
+                    `${key}`,
                     JSON.stringify({
+                        type: 'update',
                         bot: null,
                         statusUpdate: { active: false }
                     })

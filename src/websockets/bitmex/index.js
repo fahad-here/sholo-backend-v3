@@ -1,7 +1,7 @@
 const BitMEXClient = require('bitmex-realtime-api')
 const BaseWS = require('../base')
 const { BITMEX_EXCHANGE } = require('../../constants')
-
+const BigNumber = require('bignumber.js')
 class BitmexWS extends BaseWS {
     constructor(pair, options = { testnet: true }) {
         super(BITMEX_EXCHANGE, options, new BitMEXClient(options), pair)
@@ -31,6 +31,51 @@ class BitmexWS extends BaseWS {
                     orderBookData.asks,
                     orderBookData.timestamp
                 )
+        })
+    }
+
+    addOrderTicker() {
+        this.ws.addStream(this.pair, 'order', (data, pair, tableName) => {
+            const orderData = data[0]
+            if (orderData)
+                if (this.onEmitOrderChangeListener)
+                    this.onEmitOrderChangeListener(
+                        this.id,
+                        this.pair,
+                        orderData.orderID,
+                        orderData.ordStatus,
+                        orderData.orderQty,
+                        orderData.cumQty,
+                        orderData.leavesQty
+                    )
+        })
+    }
+
+    addPositionTicker() {
+        this.ws.addStream(this.pair, 'position', (data, pair, tableName) => {
+            const positionData = data[0]
+            if (positionData)
+                if (this.onEmitPositionChangeListener)
+                    this.onEmitPositionChangeListener(
+                        this.id,
+                        this.pair,
+                        positionData.isOpen,
+                        new BigNumber(positionData.maintMargin)
+                            .dividedBy(100000000)
+                            .toFixed(8),
+                        new BigNumber(positionData.markValue)
+                            .dividedBy(100000000)
+                            .toFixed(8),
+                        positionData.liquidationPrice,
+                        positionData.bankruptPrice,
+                        new BigNumber(positionData.realisedPnl)
+                            .dividedBy(100000000)
+                            .toFixed(8),
+                        new BigNumber(positionData.unrealisedPnl)
+                            .dividedBy(100000000)
+                            .toFixed(8),
+                        positionData.unrealisedPnlPcnt
+                    )
         })
     }
 }

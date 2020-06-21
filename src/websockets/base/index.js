@@ -18,6 +18,14 @@ class BaseWS {
         this.onEmitOrderBookChangeListener = onEmitOrderBookChangeListener
     }
 
+    setOrderListener(onEmitOrderChangeListener) {
+        this.onEmitOrderChangeListener = onEmitOrderChangeListener
+    }
+
+    setPositionListener(onEmitPositionChangeListener) {
+        this.onEmitPositionChangeListener = onEmitPositionChangeListener
+    }
+
     setTradeTickerListener(onEmitTradeChangeListener) {
         this.onEmitTradeChangeListener = onEmitTradeChangeListener
     }
@@ -31,6 +39,14 @@ class BaseWS {
     }
 
     addTradeTicker() {
+        throw new Error('Need to implement this method')
+    }
+
+    addOrderTicker() {
+        throw new Error('Need to implement this method')
+    }
+
+    addPositionTicker() {
         throw new Error('Need to implement this method')
     }
 }
