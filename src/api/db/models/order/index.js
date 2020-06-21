@@ -40,6 +40,12 @@ const OrderSchema = new Schema(
         side: {
             type: String
         },
+        status: {
+            type: String
+        },
+        totalOrderQuantity: { type: Number },
+        filledQuantity: { type: Number },
+        remainQuantity: { type: Number },
         price: {
             type: Number
         },

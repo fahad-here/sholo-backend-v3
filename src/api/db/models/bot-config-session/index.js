@@ -29,6 +29,10 @@ const BotConfigSessionSchema = new mongoose.Schema({
         type: Number,
         default: 1
     },
+    positionSequence: {
+        type: Number,
+        default: 1
+    },
     leverage: { type: Number, default: 1, max: 100, min: 1 },
     marketThreshold: {
         type: Number

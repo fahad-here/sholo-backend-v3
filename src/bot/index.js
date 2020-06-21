@@ -3,7 +3,12 @@ const BigNumber = require('bignumber.js')
 const { Factory } = require('../strategy')
 
 const { DBConnect, DBSchemas } = require('../../src/api/db')
-const { BotSchema, OrderSchema, BotConfigSessionSchema } = DBSchemas
+const {
+    BotSchema,
+    OrderSchema,
+    BotConfigSessionSchema,
+    PositionSchema
+} = DBSchemas
 const { GetPriceTickerKey, Logger, GetWSClass } = require('../../src/utils')
 
 const redis = require('redis')
@@ -45,16 +50,26 @@ class Bot {
             ? postOrderBalance.free[BTC] - preOrderBalance.free[BTC]
             : preOrderBalance.free[BTC] - postOrderBalance.free[BTC]
         const feePercent = FEES[this._bot.feeType]
+        const leverage = this._bot.leverage
         let fees = 0
         switch (feePercent) {
             case FEE_TYPE_MAKER:
-                fees = difference * LIMIT_FEES
+                fees = new BigNumber(difference)
+                    .multipliedBy(leverage)
+                    .multipliedBy(LIMIT_FEES)
+                    .toFixed(8)
                 return fees
             case FEE_TYPE_TAKER:
-                fees = difference * MARKET_FEES
+                fees = new BigNumber(difference)
+                    .multipliedBy(leverage)
+                    .multipliedBy(MARKET_FEES)
+                    .toFixed(8)
                 return fees
             default:
-                fees = difference * MARKET_FEES
+                fees = new BigNumber(difference)
+                    .multipliedBy(leverage)
+                    .multipliedBy(MARKET_FEES)
+                    .toFixed(8)
                 return fees
         }
     }
@@ -89,6 +104,164 @@ class Bot {
 
     async onBuySignal(price, timestamp) {
         try {
+            if (!this._position) {
+                const {
+                    _userId,
+                    _botConfigId,
+                    _botSessionId,
+                    exchange,
+                    feeType,
+                    symbol,
+                    leverage,
+                    order: botOrder
+                } = this._bot
+                const { _id, accountType } = this._account
+                const side = accountType === POSITION_SHORT ? SELL : BUY
+                //calculate fees before placing order
+                const preOrderBalance = await this._trader.getBalance()
+                const { amount, margin } = this._calculateAmount(price)
+                const {
+                    liquidation,
+                    bankrupt
+                } = this._trader.exchange
+                    .getExchange()
+                    ._calculateLiquidation(amount, price)
+                const orderDetails = await this._trader.createMarketOrder(
+                    side,
+                    amount
+                )
+                const fees = await this._calculateFees(preOrderBalance)
+                const botSession = await BotConfigSessionSchema.findById({
+                    _id: _botSessionId
+                })
+                const order = await new OrderSchema({
+                    _userId,
+                    _botId: this._botId,
+                    _botConfigId,
+                    _botSessionId,
+                    _accountId: _id,
+                    _orderId: orderDetails.id,
+                    timestamp: orderDetails.datetime,
+                    side,
+                    price,
+                    amount,
+                    cost: margin,
+                    status: orderDetails.info.ordStatus,
+                    fees,
+                    botOrder,
+                    totalOrderQuantity: amount,
+                    filledQuantity: orderDetails.filled,
+                    remainQuantity: orderDetails.remaining,
+                    exchange: exchange,
+                    type: feeType,
+                    symbol: symbol,
+                    pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
+                    isExit: false,
+                    leverage: leverage,
+                    orderSequence: botSession.orderSequence
+                }).save()
+                process.send({
+                    command: 'socket',
+                    args: {
+                        channel: `${this._botId}`,
+                        message: {
+                            type: 'order',
+                            order
+                        }
+                    }
+                })
+                this._bot = await BotSchema.findByIdAndUpdate(
+                    { _id: this._botId },
+                    {
+                        $set: {
+                            priceP: price,
+                            liquidationPrice: liquidation,
+                            positionOpen: true,
+                            _previousOrderId: order._id
+                        }
+                    },
+                    { new: true }
+                )
+                process.send({
+                    command: 'socket',
+                    args: {
+                        channel: `${this._bot._id}`,
+                        message: {
+                            type: 'update',
+                            bot: this._bot
+                        }
+                    }
+                })
+                const positionData = {
+                    _userId,
+                    _botId: this._botId,
+                    _botConfigId,
+                    _botSessionId,
+                    _accountId: _id,
+                    _buyOrderId: orderDetails.id,
+                    isOpen: true,
+                    side,
+                    entryPrice: price,
+                    symbol,
+                    pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
+                    exchange,
+                    leverage,
+                    startedAt: timestamp
+                }
+                if (side === BUY) {
+                    this._position = await new PositionSchema(
+                        positionData
+                    ).save()
+                    process.send({
+                        command: 'socket',
+                        args: {
+                            channel: `${this._bot._id}`,
+                            message: {
+                                type: 'position',
+                                position: this._position
+                            }
+                        }
+                    })
+                } else {
+                    this._position = null
+                }
+                const updateSequence =
+                    side === BUY
+                        ? { orderSequence: 1, positionSequence: 1 }
+                        : { orderSequence: 1 }
+                const session = await BotConfigSessionSchema.findByIdAndUpdate(
+                    { _id: _botSessionId },
+                    { $inc: updateSequence },
+                    { new: true }
+                )
+                process.send({
+                    command: 'socket',
+                    args: {
+                        channel: `${this._bot._id}`,
+                        message: {
+                            type: 'session',
+                            session
+                        }
+                    }
+                })
+                // save this order in db
+                // create a position
+                // subscribe to ws updates on the position
+                // update db on ws updates
+                // update bot with new price p value
+                // update liquidation price
+                // send the updates via sockets to frontend
+            }
+        } catch (e) {
+            Logger.error(`Error on buy signal `, e)
+        }
+    }
+
+    onSellSignal(price, timestamp) {
+        try {
+            if (!this._position) Logger.error(`No current position`)
+            if (!this._position.isOpen)
+                Logger.error('Current position is not open')
             const {
                 _userId,
                 _botConfigId,
@@ -102,101 +275,10 @@ class Bot {
             const { _id, accountType } = this._account
             const side = accountType === POSITION_SHORT ? SELL : BUY
             //calculate fees before placing order
-            const preOrderBalance = await this._trader.getBalance()
-            const { amount, margin } = this._calculateAmount(price)
-            const {
-                liquidation,
-                bankrupt
-            } = this._trader.exchange
-                .getExchange()
-                ._calculateLiquidation(amount, price)
-            const orderDetails = await this._trader.createMarketOrder(
-                side,
-                amount
-            )
-            const fees = await this._calculateFees(preOrderBalance)
-            const botSession = await BotConfigSessionSchema.findById({
-                _id: _botSessionId
-            })
-            const order = await new OrderSchema({
-                _userId,
-                _botId: this._botId,
-                _botConfigId,
-                _botSessionId,
-                _accountId: _id,
-                _orderId: orderDetails.id,
-                timestamp: orderDetails.datetime,
-                side,
-                price,
-                amount,
-                cost: margin,
-                fees,
-                botOrder,
-                exchange: exchange,
-                type: feeType,
-                symbol: symbol,
-                pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
-                isExit: false,
-                leverage: leverage,
-                orderSequence: botSession.orderSequence
-            }).save()
-            await BotConfigSessionSchema.findByIdAndUpdate(
-                { _id: _botSessionId },
-                { $inc: { orderSequence: 1 } },
-                { new: true }
-            )
-            process.send({
-                command: 'socket',
-                args: {
-                    channel: `${this._botId}`,
-                    message: {
-                        type: 'order',
-                        order
-                    }
-                }
-            })
-            this._bot = await BotSchema.findByIdAndUpdate(
-                { _id: this._botId },
-                {
-                    $set: {
-                        priceP: price,
-                        liquidationPrice: liquidation,
-                        positionOpen: true,
-                        _previousOrderId: order._id
-                    }
-                },
-                { new: true }
-            )
-            process.send({
-                command: 'socket',
-                args: {
-                    channel: `${this._bot._id}`,
-                    message: {
-                        type: 'update',
-                        bot: this._bot
-                    }
-                }
-            })
-            this.position = {
-                entryPrice: price,
-                exitPrice: '',
-                status: '',
-                unrealisedPnl: ''
-            }
-
-            // save this order in db
-            // create a position
-            // subscribe to ws updates on the position
-            // update db on ws updates
-            // update bot with new price p value
-            // update liquidation price
-            // send the updates via sockets to frontend
         } catch (e) {
-            Logger.error(`Error on buy signal `, e)
+            Logger.error(`Error on sell signal `, e)
         }
     }
-
-    onSellSignal(price, timestamp) {}
 
     onLiquidatedSignal() {}
 
