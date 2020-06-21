@@ -4,7 +4,7 @@ const { Factory } = require('../strategy')
 
 const { DBConnect, DBSchemas } = require('../../src/api/db')
 const { BotSchema, OrderSchema, BotConfigSessionSchema } = DBSchemas
-const { GetPriceTickerKey, Logger } = require('../../src/utils')
+const { GetPriceTickerKey, Logger, GetWSClass } = require('../../src/utils')
 
 const redis = require('redis')
 const { POSITION_SHORT, SELL, BUY } = require('../constants')
@@ -210,9 +210,63 @@ class Bot {
         }
     }
 
+    _onOrderChangeEmitter(
+        id,
+        pair,
+        orderId,
+        orderStatus,
+        totalOrderQuantity,
+        filledQuantity,
+        remainQuantity
+    ) {
+        Logger.info('order ', {
+            orderId,
+            orderStatus,
+            totalOrderQuantity,
+            filledQuantity,
+            remainQuantity
+        })
+    }
+
+    _onPositionChangeEmitter(
+        id,
+        pair,
+        isOpen,
+        margin,
+        positionSize,
+        liquidationPrice,
+        bankruptPrice,
+        realisedPnl,
+        unrealisedPnl,
+        unrealisedPnlPercent
+    ) {
+        Logger.info('position ', {
+            id,
+            pair,
+            isOpen,
+            margin,
+            positionSize,
+            liquidationPrice,
+            bankruptPrice,
+            realisedPnl,
+            unrealisedPnl,
+            unrealisedPnlPercent
+        })
+    }
+
     _subscribeToEvents(bot) {
         const exchange = bot.exchange
         const pair = MAP_WS_PAIR_TO_SYMBOL[bot.symbol]
+        //this works only for bitmex right now
+        this._ws = GetWSClass(exchange, pair, {
+            apiKeyID: this._account.apiKey,
+            apiKeySecret: this._account.apiSecret,
+            testnet: this._account.testNet
+        })
+        this._ws.setOrderListener(this._onOrderChangeEmitter)
+        this._ws.setPositionListener(this._onPositionChangeEmitter)
+        this._ws.addOrderTicker()
+        this._ws.addPositionTicker()
         priceSubscriptionClient.subscribe(
             GetPriceTickerKey(exchange, pair),
             (err, count) => {
@@ -268,6 +322,12 @@ class Bot {
         )
             .then((bot) => {
                 this._bot = bot
+
+                this._ws.setOrderListener(null)
+                this._ws.setPositionListener(null)
+                this._ws.addOrderTicker()
+                this._ws.addPositionTicker()
+                this._ws.exit()
                 //process.send({command: 'socket', args: {channel: `${bot._id}__update`, message: {bot}}})
                 sub.quit()
                 botClient.quit()

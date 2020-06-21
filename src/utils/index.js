@@ -4,7 +4,7 @@ const ResponseMessage = require('./getResponseMessage')
 const RouteErrorHandler = require('./errorHandler')
 const Validation = require('./validation')
 const GetExchangeClass = require('./getExchangeClass')
-
+const GetWSClass = require('./getWebSocketClass')
 const GetCandleKey = (exchangeName, symbol, timeFrame) =>
     `${exchangeName}__${symbol}__${timeFrame}`
 const RoundDate = (date, duration, method) =>
@@ -23,5 +23,6 @@ module.exports = {
     RoundDate,
     GetPriceTickerKey,
     GetOrderBook10TickerKey,
-    GetExchangeClass
+    GetExchangeClass,
+    GetWSClass
 }

@@ -49,6 +49,10 @@ class BaseWS {
     addPositionTicker() {
         throw new Error('Need to implement this method')
     }
+
+    exit() {
+        this.ws.removeAllListeners()
+    }
 }
 
 module.exports = BaseWS
