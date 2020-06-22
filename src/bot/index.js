@@ -173,6 +173,21 @@ class Bot {
             { _id: this._botId },
             {
                 $set: {
+                    balance: isBuy
+                        ? new BigNumber(this._bot.balance)
+                              .minus(
+                                  new BigNumber(orderDetails.amount)
+                                      .dividedBy(orderDetails.average)
+                                      .dividedBy(leverage)
+                              )
+                              .toFixed(8)
+                        : new BigNumber(this._bot.balance)
+                              .plus(
+                                  new BigNumber(orderDetails.amount)
+                                      .dividedBy(orderDetails.average)
+                                      .dividedBy(leverage)
+                              )
+                              .toFixed(8),
                     priceP: price,
                     liquidationPrice: liquidation,
                     positionOpen: true,
@@ -213,6 +228,7 @@ class Bot {
                 isOpen: false,
                 endedAt: timestamp
             }
+            this._account = await AccountSchema
             const pos = await PositionSchema.findByIdAndUpdate(
                 { _id: this._position._id },
                 { $set: changedSet },

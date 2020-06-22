@@ -236,7 +236,33 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
     }
 }
 
-const _calculateStats = async () => {}
+const _calculateStats = async (botConfig, currentSession, bots) => {
+    let totalInitialUsdBalance = 0
+    let totalInitialBtcBalance = 0
+    let totalEndingUsdBalance = 0
+    let totalEndingBtcBalance = 0
+    let totalUsdPnl = 0
+    let totalBtcPnl = 0
+    let totalRealisedBtcPnl = 0
+    let totalRealisedUsdPnl = 0
+    let totalUnrealisedBtcPnl = 0
+    let totalUnrealisedUsdPnl = 0
+    let totalFeesBtcPaid = 0
+    let totalFeesUsdPaid = 0
+
+    for (let key of Object.keys(botConfig.startingBalances)) {
+        totalInitialBtcBalance = new BigNumber(totalInitialBtcBalance)
+            .plus(botConfig.startingBalances[key])
+            .toFixed(8)
+        totalInitialUsdBalance = new BigNumber(totalInitialUsdBalance)
+            .plus(
+                new BigNumber(totalInitialBtcBalance).multipliedBy(
+                    currentSession.actualEntryPrice
+                )
+            )
+            .toFixed(8)
+    }
+}
 
 const _stopBot = async (req, res, next, botConfig, _userId) => {
     try {
@@ -250,15 +276,6 @@ const _stopBot = async (req, res, next, botConfig, _userId) => {
                         'Bot configuration is already inactive'
                     )
                 )
-        let botConfigSession = await BotConfigSessionSchema.findByIdAndUpdate(
-            { _id: currentSession },
-            {
-                $set: {
-                    active: false,
-                    endedAt: Date.now()
-                }
-            }
-        )
         let bots = []
         for (let key of Object.keys(selectedAccounts)) {
             // close open positions if any
@@ -286,8 +303,21 @@ const _stopBot = async (req, res, next, botConfig, _userId) => {
             )
             bots.push(bot)
         }
+        let botConfigSession = await BotConfigSessionSchema.findByIdAndUpdate(
+            { _id: currentSession },
+            {
+                $set: {
+                    active: false,
+                    endedAt: Date.now()
+                }
+            }
+        )
         //calculate session stats
-        _calculateStats(botConfig, currentSession, bots)
+        botConfigSession = await _calculateStats(
+            botConfig,
+            currentSession,
+            bots
+        )
         //update the bot config with the session = null
         const savedBotConfig = await BotConfigSchema.findByIdAndUpdate(
             { _id: botConfig._id },
