@@ -22,6 +22,7 @@ const BotConfigSessionSchema = new mongoose.Schema({
     exchange: { type: String, required: true, enum: [...ALLOWED_EXCHANGES] },
     symbol: { type: String, required: true },
     entryPrice: { type: Number, required: true },
+    exitPrice: { type: Number, required: true },
     priceA: { type: Number, required: true },
     priceB: { type: Number, required: true },
     priceR: { type: Number, required: true },
@@ -57,6 +58,20 @@ const BotConfigSessionSchema = new mongoose.Schema({
         type: Date,
         required: true,
         default: Date.now
+    },
+    stats: {
+        totalInitialBtcBalance: { type: String },
+        totalInitialUsdBalance: { type: String },
+        totalEndingUsdBalance: { type: String },
+        totalEndingBtcBalance: { type: String },
+        totalBtcPnl: { type: String },
+        totalUsdPnl: { type: String },
+        totalFeesBtcPaid: { type: String },
+        totalFeesUsdPaid: { type: String },
+        totalRealisedBtcPnl: { type: String },
+        totalRealisedUsdPnl: { type: String },
+        totalUnrealisedBtcPnl: { type: String },
+        totalUnrealisedUsdPnl: { type: String }
     }
 })
 BotConfigSessionSchema.plugin(AutoIncrement, {

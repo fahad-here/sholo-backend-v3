@@ -229,7 +229,7 @@ class Bot {
             : { orderSequence: 1 }
         const session = await BotConfigSessionSchema.findByIdAndUpdate(
             { _id: _botSessionId },
-            { $inc: updateSequence },
+            { $inc: updateSequence, $set: { exitPrice: price } },
             { new: true }
         )
         this._sendSignalToParent('socket', `${this._bot._id}`, {
@@ -364,6 +364,15 @@ class Bot {
                     ...changedSet,
                     liquidationPrice
                 }
+                this._bot = await BotSchema.findByIdAndUpdate(
+                    { _id: this._bot._id },
+                    { $set: { liquidationPrice } },
+                    { new: true }
+                )
+                this._sendSignalToParent('socket', `${this._bot._id}`, {
+                    type: 'update',
+                    position: this._bot
+                })
                 changed = true
             }
             if (this._position.bankruptPrice !== bankruptPrice) {
@@ -394,9 +403,25 @@ class Bot {
             this._position.isOpen = isOpen
             changedSet = {
                 ...changedSet,
-                isOpen
+                isOpen,
+                realisedPnl,
+                unrealisedPnl
             }
             changed = true
+            this._bot = await BotSchema.findByIdAndUpdate(
+                { _id: this._bot._id },
+                {
+                    $set: {
+                        realisedPnl: new BigNumber(this._bot.realisedPnl)
+                            .plus(realisedPnl)
+                            .toFixed(8)
+                    }
+                }
+            )
+            this._sendSignalToParent('socket', `${this._bot._id}`, {
+                type: 'update',
+                position: this._bot
+            })
         }
 
         Logger.info('position ', {

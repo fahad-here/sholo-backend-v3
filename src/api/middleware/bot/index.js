@@ -5,7 +5,7 @@ const {
     AccountSchema,
     BotConfigSchema,
     BotConfigSessionSchema,
-    BotSchema
+    BotSchema,
 } = DBSchemas
 
 const _checkUniqueAccounts = (accountIds) => {
@@ -236,9 +236,80 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
     }
 }
 
-const _stopBot = (req, res, next, botConfig) => {
+const _calculateStats = async () => {}
+
+const _stopBot = async (req, res, next, botConfig, _userId) => {
     try {
-        return res.json(ResponseMessage(false, 'Place Holder'))
+        let {
+            selectedAccounts,
+            active,
+            currentSession
+        } = botConfig
+        if (!active)
+            return res
+                .status(500)
+                .json(
+                    ResponseMessage(
+                        true,
+                        'Bot configuration is already inactive'
+                    )
+                )
+        let botConfigSession = await BotConfigSessionSchema.findByIdAndUpdate(
+            { _id: currentSession },
+            {
+                $set: {
+                    active: false,
+                    endedAt: Date.now()
+                }
+            }
+        )
+        let bots = []
+        for (let key of Object.keys(selectedAccounts)) {
+            // close open positions if any
+            // change account status
+            // update s1 and l1 bots
+            // not sure if open positions need to be closed on stopping the bot
+            // await _closeOpenBTCPositions(selectedAccounts[key], symbol)
+            const accountDetails = await _changeAccountStatus(
+                selectedAccounts[key],
+                false
+            )
+            const bot = await BotSchema.findOneAndUpdate(
+                {
+                    _accountId: selectedAccounts[key],
+                    _botSessionId: currentSession,
+                    _userId,
+                    _botConfigId: botConfig._id
+                },
+                {
+                    $set: {
+                        enabled: false
+                    }
+                },
+                { new: true }
+            )
+            bots.push(bot)
+        }
+        //calculate session stats
+        _calculateStats(botConfig, currentSession, bots)
+        //update the bot config with the session = null
+        const savedBotConfig = await BotConfigSchema.findByIdAndUpdate(
+            { _id: botConfig._id },
+            {
+                $set: {
+                    active: false,
+                    currentSession: null
+                }
+            },
+            { new: true }
+        )
+        return res.json(
+            ResponseMessage(false, 'Bot configuration is now active', {
+                botConfig: savedBotConfig,
+                botConfigSession,
+                bots
+            })
+        )
     } catch (e) {
         return next(e)
     }
