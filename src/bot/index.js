@@ -102,6 +102,16 @@ class Bot {
         return { amount, margin }
     }
 
+    _sendSignalToParent(command, channel, message) {
+        process.send({
+            command,
+            args: {
+                channel,
+                message
+            }
+        })
+    }
+
     async onBuySellSignal(price, timestamp, isBuy) {
         const {
             _userId,
@@ -155,15 +165,9 @@ class Bot {
             leverage: leverage,
             orderSequence: botSession.orderSequence
         }).save()
-        process.send({
-            command: 'socket',
-            args: {
-                channel: `${this._botId}`,
-                message: {
-                    type: 'order',
-                    order
-                }
-            }
+        this._sendSignalToParent('socket', `${this._bot._id}`, {
+            type: 'order',
+            order
         })
         this._bot = await BotSchema.findByIdAndUpdate(
             { _id: this._botId },
@@ -177,17 +181,10 @@ class Bot {
             },
             { new: true }
         )
-        process.send({
-            command: 'socket',
-            args: {
-                channel: `${this._bot._id}`,
-                message: {
-                    type: 'update',
-                    bot: this._bot
-                }
-            }
+        this._sendSignalToParent('socket', `${this._bot._id}`, {
+            type: 'update',
+            bot: this._bot
         })
-
         if (isBuy) {
             const positionData = {
                 _userId,
@@ -206,15 +203,9 @@ class Bot {
                 startedAt: timestamp
             }
             this._position = await new PositionSchema(positionData).save()
-            process.send({
-                command: 'socket',
-                args: {
-                    channel: `${this._bot._id}`,
-                    message: {
-                        type: 'position',
-                        position: this._position
-                    }
-                }
+            this._sendSignalToParent('socket', `${this._bot._id}`, {
+                type: 'position',
+                position: this._position
             })
         } else {
             const changedSet = {
@@ -227,15 +218,9 @@ class Bot {
                 { $set: changedSet },
                 { new: true }
             )
-            process.send({
-                command: 'socket',
-                args: {
-                    channel: `${this._bot._id}`,
-                    message: {
-                        type: 'position',
-                        position: pos
-                    }
-                }
+            this._sendSignalToParent('socket', `${this._bot._id}`, {
+                type: 'position',
+                position: pos
             })
             this._position = null
         }
@@ -247,15 +232,9 @@ class Bot {
             { $inc: updateSequence },
             { new: true }
         )
-        process.send({
-            command: 'socket',
-            args: {
-                channel: `${this._bot._id}`,
-                message: {
-                    type: 'session',
-                    session
-                }
-            }
+        this._sendSignalToParent('socket', `${this._bot._id}`, {
+            type: 'session',
+            session
         })
     }
 
@@ -300,15 +279,9 @@ class Bot {
                 { $set: changedSet },
                 { new: true }
             )
-            process.send({
-                command: 'socket',
-                args: {
-                    channel: `${this._bot._id}`,
-                    message: {
-                        type: 'position',
-                        position: pos
-                    }
-                }
+            this._sendSignalToParent('socket', `${this._bot._id}`, {
+                type: 'position',
+                position: pos
             })
             this._position = null
             this.publishStopBot()
@@ -444,15 +417,9 @@ class Bot {
                 { $set: changedSet },
                 { new: true }
             )
-            process.send({
-                command: 'socket',
-                args: {
-                    channel: `${this._bot._id}`,
-                    message: {
-                        type: 'position',
-                        position: this._position
-                    }
-                }
+            this._sendSignalToParent('socket', `${this._bot._id}`, {
+                type: 'position',
+                position: this._position
             })
         }
     }
@@ -531,15 +498,9 @@ class Bot {
                 this._ws.addOrderTicker()
                 this._ws.addPositionTicker()
                 this._ws.exit()
-                process.send({
-                    command: 'socket',
-                    args: {
-                        channel: `${this._bot._id}`,
-                        message: {
-                            type: 'update',
-                            bot: this._bot
-                        }
-                    }
+                this._sendSignalToParent('socket', `${this._bot._id}`, {
+                    type: 'update',
+                    bot: this._bot
                 })
                 sub.quit()
                 botClient.quit()
@@ -586,15 +547,9 @@ class Bot {
             .then((data) => {
                 this._bot = bot
                 this._subscribeToEvents(bot)
-                process.send({
-                    command: 'socket',
-                    args: {
-                        channel: `${this._bot._id}`,
-                        message: {
-                            type: 'update',
-                            bot: data
-                        }
-                    }
+                this._sendSignalToParent('socket', `${this._bot._id}`, {
+                    type: 'update',
+                    bot: data
                 })
             })
             .catch((err) => {
