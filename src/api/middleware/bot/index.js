@@ -5,7 +5,7 @@ const {
     AccountSchema,
     BotConfigSchema,
     BotConfigSessionSchema,
-    BotSchema,
+    BotSchema
 } = DBSchemas
 
 const _checkUniqueAccounts = (accountIds) => {
@@ -240,11 +240,7 @@ const _calculateStats = async () => {}
 
 const _stopBot = async (req, res, next, botConfig, _userId) => {
     try {
-        let {
-            selectedAccounts,
-            active,
-            currentSession
-        } = botConfig
+        let { selectedAccounts, active, currentSession } = botConfig
         if (!active)
             return res
                 .status(500)

@@ -227,9 +227,12 @@ class Bot {
         const updateSequence = isBuy
             ? { orderSequence: 1, positionSequence: 1 }
             : { orderSequence: 1 }
+        const updateValue = isBuy
+            ? { actualEntryPrice: price }
+            : { exitPrice: price }
         const session = await BotConfigSessionSchema.findByIdAndUpdate(
             { _id: _botSessionId },
-            { $inc: updateSequence, $set: { exitPrice: price } },
+            { $inc: updateSequence, $set: updateValue },
             { new: true }
         )
         this._sendSignalToParent('socket', `${this._bot._id}`, {
