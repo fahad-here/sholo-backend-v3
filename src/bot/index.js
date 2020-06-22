@@ -565,6 +565,24 @@ class Bot {
             })
     }
 
+    _findActivePosition(bot) {
+        //need to figure out a way to check if the position is still active on the exchange
+        PositionSchema.findOne({
+            isOpen: true,
+            liquidated: false,
+            exchange: bot.exchange,
+            symbol: bot.symbol,
+            _botId: bot._id,
+            _botSessionId: bot.currentSession
+        })
+            .then((position) => {
+                this._position = position
+            })
+            .catch((err) => {
+                Logger.error(`Error when looking for active position`, err)
+            })
+    }
+
     init() {
         const bot = this._bot
         BotSchema.findOneAndUpdate(
@@ -575,6 +593,7 @@ class Bot {
             .then((data) => {
                 this._bot = bot
                 this._subscribeToEvents(bot)
+                this._findActivePosition(bot)
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
                     type: 'update',
                     bot: data
