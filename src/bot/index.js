@@ -117,7 +117,7 @@ class Bot {
         const side = accountType === POSITION_SHORT ? SELL : BUY
         //calculate fees before placing order
         const preOrderBalance = await this._trader.getBalance()
-        const { amount, margin } = this._calculateAmount(price)
+        const { amount, margin } = this._calculateAmount(price, isBuy)
         const {
             liquidation,
             bankrupt
@@ -187,23 +187,24 @@ class Bot {
                 }
             }
         })
-        const positionData = {
-            _userId,
-            _botId: this._botId,
-            _botConfigId,
-            _botSessionId,
-            _accountId: _id,
-            _buyOrderId: orderDetails.id,
-            isOpen: true,
-            side,
-            entryPrice: price,
-            symbol,
-            pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
-            exchange,
-            leverage,
-            startedAt: timestamp
-        }
+
         if (isBuy) {
+            const positionData = {
+                _userId,
+                _botId: this._botId,
+                _botConfigId,
+                _botSessionId,
+                _accountId: _id,
+                _buyOrderId: orderDetails.id,
+                isOpen: true,
+                side,
+                entryPrice: price,
+                symbol,
+                pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
+                exchange,
+                leverage,
+                startedAt: timestamp
+            }
             this._position = await new PositionSchema(positionData).save()
             process.send({
                 command: 'socket',
@@ -216,6 +217,26 @@ class Bot {
                 }
             })
         } else {
+            const changedSet = {
+                exitPrice: price,
+                isOpen: false,
+                endedAt: timestamp
+            }
+            const pos = await PositionSchema.findByIdAndUpdate(
+                { _id: this._position._id },
+                { $set: changedSet },
+                { new: true }
+            )
+            process.send({
+                command: 'socket',
+                args: {
+                    channel: `${this._bot._id}`,
+                    message: {
+                        type: 'position',
+                        position: pos
+                    }
+                }
+            })
             this._position = null
         }
         const updateSequence = isBuy
@@ -266,9 +287,46 @@ class Bot {
         }
     }
 
-    onLiquidatedSignal(price, timestamp) {}
+    async onLiquidatedSignal(price, timestamp) {
+        try {
+            const changedSet = {
+                exitPrice: price,
+                isOpen: false,
+                endedAt: timestamp,
+                liquidated: true
+            }
+            const pos = await PositionSchema.findByIdAndUpdate(
+                { _id: this._position._id },
+                { $set: changedSet },
+                { new: true }
+            )
+            process.send({
+                command: 'socket',
+                args: {
+                    channel: `${this._bot._id}`,
+                    message: {
+                        type: 'position',
+                        position: pos
+                    }
+                }
+            })
+            this._position = null
+            this.publishStopBot()
+        } catch (e) {
+            Logger.error(`Error on liquidated signal `, e)
+        }
+    }
 
-    onPriceRReachedSignal(price, timestamp) {}
+    async onPriceRReachedSignal(price, timestamp) {
+        try {
+            if (!this._position) {
+                await this.onBuySellSignal(price, timestamp, true)
+                //send email notification
+            }
+        } catch (e) {
+            Logger.error(`Error on price r reached signal `, e)
+        }
+    }
 
     async onTickerPriceReceived(price, timestamp) {
         try {
@@ -296,7 +354,7 @@ class Bot {
         })
     }
 
-    _onPositionChangeEmitter(
+    async _onPositionChangeEmitter(
         id,
         pair,
         isOpen,
@@ -308,6 +366,66 @@ class Bot {
         unrealisedPnl,
         unrealisedPnlPercent
     ) {
+        let changed = false
+        let changedSet = {}
+        if (isOpen) {
+            if (this._position.margin !== margin) {
+                this._position.margin = margin
+                changedSet = {
+                    ...changedSet,
+                    margin
+                }
+                changed = true
+            }
+            if (this._position.positionSize !== positionSize) {
+                this._position.positionSize = positionSize
+                changedSet = {
+                    ...changedSet,
+                    positionSize
+                }
+                changed = true
+            }
+            if (this._position.liquidationPrice !== liquidationPrice) {
+                this._position.liquidationPrice = liquidationPrice
+                changedSet = {
+                    ...changedSet,
+                    liquidationPrice
+                }
+                changed = true
+            }
+            if (this._position.bankruptPrice !== bankruptPrice) {
+                this._position.bankruptPrice = bankruptPrice
+                changedSet = {
+                    ...changedSet,
+                    bankruptPrice
+                }
+                changed = true
+            }
+            if (this._position.realisedPnl !== realisedPnl) {
+                this._position.realisedPnl = realisedPnl
+                changedSet = {
+                    ...changedSet,
+                    realisedPnl
+                }
+                changed = true
+            }
+            if (this._position.unrealisedPnl !== unrealisedPnl) {
+                this._position.unrealisedPnl = unrealisedPnl
+                changedSet = {
+                    ...changedSet,
+                    unrealisedPnl
+                }
+                changed = true
+            }
+        } else {
+            this._position.isOpen = isOpen
+            changedSet = {
+                ...changedSet,
+                isOpen
+            }
+            changed = true
+        }
+
         Logger.info('position ', {
             id,
             pair,
@@ -320,6 +438,23 @@ class Bot {
             unrealisedPnl,
             unrealisedPnlPercent
         })
+        if (changed) {
+            this._position = await PositionSchema.findByIdAndUpdate(
+                { _id: this._position._id },
+                { $set: changedSet },
+                { new: true }
+            )
+            process.send({
+                command: 'socket',
+                args: {
+                    channel: `${this._bot._id}`,
+                    message: {
+                        type: 'position',
+                        position: this._position
+                    }
+                }
+            })
+        }
     }
 
     _subscribeToEvents(bot) {
@@ -396,7 +531,16 @@ class Bot {
                 this._ws.addOrderTicker()
                 this._ws.addPositionTicker()
                 this._ws.exit()
-                //process.send({command: 'socket', args: {channel: `${bot._id}__update`, message: {bot}}})
+                process.send({
+                    command: 'socket',
+                    args: {
+                        channel: `${this._bot._id}`,
+                        message: {
+                            type: 'update',
+                            bot: this._bot
+                        }
+                    }
+                })
                 sub.quit()
                 botClient.quit()
                 pubClient.quit()
@@ -445,8 +589,11 @@ class Bot {
                 process.send({
                     command: 'socket',
                     args: {
-                        channel: `${data._id}__update`,
-                        message: { bot: data }
+                        channel: `${this._bot._id}`,
+                        message: {
+                            type: 'update',
+                            bot: data
+                        }
                     }
                 })
             })

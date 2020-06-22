@@ -46,6 +46,7 @@ const PositionSchema = new mongoose.Schema({
         default: false
     },
     entryPrice: { type: Number, default: 0 },
+    exitPrice: { type: Number, default: 0 },
     symbol: { type: String },
     pair: { type: String },
     exchange: { type: String, required: true, enum: [...ALLOWED_EXCHANGES] },
