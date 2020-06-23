@@ -71,9 +71,9 @@ const PositionSchema = new mongoose.Schema({
         default: Date.now
     }
 })
-BotSchema.plugin(AutoIncrement, {
+PositionSchema.plugin(AutoIncrement, {
     id: 'positionCounter',
     inc_field: 'id'
 })
-const Position = mongoose.model('bot', PositionSchema)
+const Position = mongoose.model('position', PositionSchema)
 module.exports = Position
