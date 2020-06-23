@@ -74,17 +74,17 @@ const _toggleAccountInUse = async (accountID, inUseByConfig) =>
 
 const _closeOpenBTCPositions = async (accountId, symbol) => {
     const accountDetails = await AccountSchema.findById({ _id: accountId })
-    const exchangeParams = {
-        enableRateLimit: true,
-        apiKey: accountDetails.apiKey,
-        secret: accountDetails.apiSecret
-    }
-    let exchangeClass = await GetExchangeClass(
+    const trader = new Trade(
         accountDetails.exchange,
-        exchangeParams
+        {
+            enableRateLimit: true,
+            apiKey: accountDetails.apiKey,
+            secret: accountDetails.apiSecret
+        },
+        accountDetails.testNet
     )
-    if (accountDetails.testNet) exchangeClass.setTestNet()
-    //close positions when trade module is added
+    trader.setPair(symbol)
+    await trader.closeOpenPositions()
 }
 
 const _createBot = async (
@@ -308,7 +308,9 @@ const _calculateStatsAndSetSession = async (
         .minus(totalInitialUsdBalance)
         .toFixed(8)
     //need to fetch current btc price here and calculate
-    totalFeesUsdPaid = new BigNumber(totalFeesBtcPaid).multipliedBy(currentSession.entryPrice).toFixed(8)
+    totalFeesUsdPaid = new BigNumber(totalFeesBtcPaid)
+        .multipliedBy(currentSession.entryPrice)
+        .toFixed(8)
     return await BotConfigSessionSchema.findByIdAndUpdate(
         { _id: currentSession },
         {
