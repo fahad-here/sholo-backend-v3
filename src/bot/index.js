@@ -254,8 +254,10 @@ class Bot {
             ? { orderSequence: 1, positionSequence: 1 }
             : { orderSequence: 1 }
         const updateValue = isBuy
-            ? { actualEntryPrice: price }
-            : { exitPrice: price }
+            ? botSession.positionSequence === 1
+                ? { [`actualEntryPrice.${this._bot.order}`]: price }
+                : {}
+            : { [`exitPrice.${this._bot.order}`]: price }
         const session = await BotConfigSessionSchema.findByIdAndUpdate(
             { _id: _botSessionId },
             { $inc: updateSequence, $set: updateValue },
@@ -393,15 +395,6 @@ class Bot {
                     ...changedSet,
                     liquidationPrice
                 }
-                this._bot = await BotSchema.findByIdAndUpdate(
-                    { _id: this._bot._id },
-                    { $set: { liquidationPrice } },
-                    { new: true }
-                )
-                this._sendSignalToParent('socket', `${this._bot._id}`, {
-                    type: 'update',
-                    position: this._bot
-                })
                 changed = true
             }
             if (this._position.bankruptPrice !== bankruptPrice) {
@@ -428,6 +421,15 @@ class Bot {
                 }
                 changed = true
             }
+            this._bot = await BotSchema.findByIdAndUpdate(
+                { _id: this._bot._id },
+                { $set: changedSet },
+                { new: true }
+            )
+            this._sendSignalToParent('socket', `${this._bot._id}`, {
+                type: 'update',
+                position: this._bot
+            })
         } else {
             this._position.isOpen = isOpen
             changedSet = {
@@ -443,7 +445,8 @@ class Bot {
                     $set: {
                         realisedPnl: new BigNumber(this._bot.realisedPnl)
                             .plus(realisedPnl)
-                            .toFixed(8)
+                            .toFixed(8),
+                        unrealisedPnl
                     }
                 }
             )

@@ -59,6 +59,7 @@ const BotSchema = new mongoose.Schema({
     liquidationStats: { type: Object },
     liquidated: false,
     realisedPnl: { type: Number, default: 0 },
+    unrealisedPnl: { type: Number, default: 0 },
     marketThreshold: {
         type: Number
     },
