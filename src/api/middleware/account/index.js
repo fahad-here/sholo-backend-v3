@@ -88,8 +88,8 @@ async function editAccountDetails(req, res, next) {
             testNet
         } = req.body
         //TODO: fix this when bots are added
-        const botInUse = false
-        if (botInUse)
+        const account = await AccountSchema.findById({ _id: id })
+        if (account.inUse)
             return res
                 .status(403)
                 .json(
