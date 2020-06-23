@@ -4,6 +4,7 @@ const { Factory } = require('../strategy')
 
 const { DBConnect, DBSchemas } = require('../../src/api/db')
 const {
+    AccountSchema,
     BotSchema,
     OrderSchema,
     BotConfigSessionSchema,
@@ -129,8 +130,7 @@ class Bot {
         const preOrderBalance = await this._trader.getBalance()
         const { amount, margin } = this._calculateAmount(price, isBuy)
         const {
-            liquidation,
-            bankrupt
+            liquidation
         } = this._trader.exchange
             .getExchange()
             ._calculateLiquidation(amount, price)
@@ -199,6 +199,16 @@ class Bot {
         this._sendSignalToParent('socket', `${this._bot._id}`, {
             type: 'update',
             bot: this._bot
+        })
+        const newBal = await this._trader.getBalance()
+        this._account = await AccountSchema.findByIdAndUpdate(
+            { _id: this._account._id },
+            { $set: { balance: newBal } },
+            { new: true }
+        )
+        this._sendSignalToParent('socket', `${this._bot._id}`, {
+            type: 'account',
+            account: this._account
         })
         if (isBuy) {
             const positionData = {
@@ -504,7 +514,7 @@ class Bot {
             //set trader here, create the buy and sell signals here as well
         })
 
-        botClient.subscribe(bot._id, (err, count) => {
+        botClient.subscribe(bot._id, () => {
             Logger.info(
                 `Child processs ${bot._id} Subscribed to ${bot._id} 
                 channel. Listening for updates on the ${bot._id} channel.`
