@@ -497,7 +497,7 @@ async function createBotConfig(req, res, next) {
 async function editBotConfig(req, res, next) {
     try {
         const botConfigID = req.params.id
-        const _userId = res.locals.user._id
+        const _userId = req.user._id
         const {
             selectedAccounts,
             startingBalances,
@@ -528,7 +528,7 @@ async function editBotConfig(req, res, next) {
                         'This configuration is currently active, please disable it before editing it'
                     )
                 )
-        let check = _checkUniqueAccounts(null, selectedAccounts)
+        let check = _checkUniqueAccounts(selectedAccounts)
         if (!check)
             return res
                 .status(403)
@@ -591,7 +591,7 @@ async function editBotConfig(req, res, next) {
 async function deleteBotConfig(req, res, next) {
     try {
         const botConfigID = req.params.id
-        const _userId = res.locals.user._id
+        const _userId = req.user._id
         const findBotConfig = await BotConfigSchema.findById({
             _id: botConfigID,
             _userId
@@ -627,15 +627,18 @@ async function deleteBotConfig(req, res, next) {
 
 async function getAllBotConfigs(req, res, next) {
     try {
-        const _userId = res.locals.user._id
+        const _userId = req.user._id
         const botConfigs = await BotConfigSchema.find({ _userId })
+        console.log(botConfigs)
         if (!botConfigs || botConfigs.length === 0)
             return res
                 .status(403)
                 .json(ResponseMessage(true, 'Bot configs do not exist'))
-        return res.json(ResponseMessage(true, 'Successful Request'), {
-            botConfigs
-        })
+        return res.json(
+            ResponseMessage(false, 'Successful Request', {
+                botConfigs
+            })
+        )
     } catch (e) {
         return next(e)
     }

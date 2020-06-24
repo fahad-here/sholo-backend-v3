@@ -32,37 +32,45 @@ async function createNewAccount(req, res, next) {
             apiKey,
             secret: apiSecret
         }
-        let exchangeClass = await GetExchangeClass(exchange, exchangeParams)
-        if (testNet) exchangeClass.setTestNet()
-        const balance = await exchangeClass.getFetchBalance()
-        const _userId = req.user._id
-        const createRes = await new AccountSchema({
-            accountName,
-            accountType,
-            exchange,
-            apiKey,
-            apiSecret,
-            _userId,
-            balance,
-            testNet
-        }).save()
-        const { _id } = createRes
-        return createRes
-            ? res.json(
-                  ResponseMessage(false, 'Created Account', {
-                      account: {
-                          _id,
-                          accountName,
-                          exchange,
-                          apiKey,
-                          apiSecret,
-                          _userId,
-                          testNet,
-                          balance
-                      }
-                  })
-              )
-            : res.json(ResponseMessage(true, 'Error creating an account'))
+        try {
+            let exchangeClass = await GetExchangeClass(exchange, exchangeParams)
+            if (testNet) exchangeClass.setTestNet()
+            const balance = await exchangeClass.getFetchBalance()
+
+            const _userId = req.user._id
+            const createRes = await new AccountSchema({
+                accountName,
+                accountType,
+                exchange,
+                apiKey,
+                apiSecret,
+                _userId,
+                balance,
+                testNet
+            }).save()
+            const { _id } = createRes
+            return createRes
+                ? res.json(
+                      ResponseMessage(false, 'Created Account', {
+                          account: {
+                              _id,
+                              accountName,
+                              exchange,
+                              apiKey,
+                              apiSecret,
+                              _userId,
+                              testNet,
+                              balance
+                          }
+                      })
+                  )
+                : res.json(ResponseMessage(true, 'Error creating an account'))
+        } catch (e) {
+            if (typeof e === 'string') {
+                e = JSON.parse(e.message.split(exchange + ' ')[1])
+                return next(e.error)
+            } else return next(e)
+        }
     } catch (e) {
         if (e instanceof ccxt.AuthenticationError) {
             return res.json(
@@ -136,7 +144,7 @@ async function getAllAccounts(req, res, next) {
                     accounts.length > 0
                         ? 'Successful request'
                         : 'No accounts found',
-                    accounts
+                    { accounts }
                 )
             )
     } catch (e) {
@@ -155,7 +163,9 @@ async function getAccount(req, res, next) {
                   .json(ResponseMessage(false, 'No such account found'))
             : res
                   .status(200)
-                  .json(ResponseMessage(false, 'Successful request', account))
+                  .json(
+                      ResponseMessage(false, 'Successful request', { account })
+                  )
     } catch (e) {
         return next(e)
     }
