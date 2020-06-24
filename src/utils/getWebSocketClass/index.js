@@ -4,11 +4,11 @@ const { BINANCE_EXCHANGE, BITMEX_EXCHANGE } = require('../../constants')
 const GetWSClass = (exchangeId, pair, options) => {
     switch (exchangeId) {
         case BITMEX_EXCHANGE:
-            return new BitmexWS(options)
+            return new BitmexWS(pair, options)
         case BINANCE_EXCHANGE:
-            return new BinanceWS(options)
+            return new BinanceWS(pair, options)
         default:
-            return new BitmexWS(options)
+            return new BitmexWS(pair, options)
     }
 }
 

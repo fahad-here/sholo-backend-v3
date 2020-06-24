@@ -11,7 +11,7 @@ const {
     PositionSchema
 } = DBSchemas
 const { GetPriceTickerKey, Logger, GetWSClass } = require('../../src/utils')
-
+const Trade = require('../trade')
 const redis = require('redis')
 const { POSITION_SHORT, SELL, BUY } = require('../constants')
 const {
@@ -248,7 +248,6 @@ class Bot {
                 type: 'position',
                 position: pos
             })
-            this._position = null
         }
         const updateSequence = isBuy
             ? { orderSequence: 1, positionSequence: 1 }
@@ -431,29 +430,31 @@ class Bot {
                 position: this._bot
             })
         } else {
-            this._position.isOpen = isOpen
-            changedSet = {
-                ...changedSet,
-                isOpen,
-                realisedPnl,
-                unrealisedPnl
-            }
-            changed = true
-            this._bot = await BotSchema.findByIdAndUpdate(
-                { _id: this._bot._id },
-                {
-                    $set: {
-                        realisedPnl: new BigNumber(this._bot.realisedPnl)
-                            .plus(realisedPnl)
-                            .toFixed(8),
-                        unrealisedPnl
-                    }
+            if (this._position) {
+                this._position.isOpen = isOpen
+                changedSet = {
+                    ...changedSet,
+                    isOpen,
+                    realisedPnl,
+                    unrealisedPnl
                 }
-            )
-            this._sendSignalToParent('socket', `${this._bot._id}`, {
-                type: 'update',
-                position: this._bot
-            })
+                changed = true
+                this._bot = await BotSchema.findByIdAndUpdate(
+                    { _id: this._bot._id },
+                    {
+                        $set: {
+                            realisedPnl: new BigNumber(this._bot.realisedPnl)
+                                .plus(realisedPnl)
+                                .toFixed(8),
+                            unrealisedPnl
+                        }
+                    }
+                )
+                this._sendSignalToParent('socket', `${this._bot._id}`, {
+                    type: 'update',
+                    position: this._bot
+                })
+            }
         }
 
         Logger.info('position ', {
@@ -468,7 +469,7 @@ class Bot {
             unrealisedPnl,
             unrealisedPnlPercent
         })
-        if (changed) {
+        if (changed && this._position) {
             this._position = await PositionSchema.findByIdAndUpdate(
                 { _id: this._position._id },
                 { $set: changedSet },
@@ -478,6 +479,9 @@ class Bot {
                 type: 'position',
                 position: this._position
             })
+        }
+        if (!isOpen) {
+            this._position = null
         }
     }
 
@@ -559,13 +563,13 @@ class Bot {
                     type: 'update',
                     bot: this._bot
                 })
-                sub.quit()
+                priceSubscriptionClient.quit()
                 botClient.quit()
                 pubClient.quit()
                 process.exit()
             })
             .catch((err) => {
-                Logger.info('Error quitting bot : ' + bot._id)
+                Logger.info('Error quitting bot : ' + this._bot._id)
                 Logger.info('Error quitting bot : ', err)
             })
     }
@@ -586,8 +590,8 @@ class Bot {
                     },
                     account.testNet
                 )
-                this._trader.setLeverage(account.leverage)
-                this._trader.setPair(account.symbol)
+                this._trader.setPair(this._bot.symbol)
+                this._trader.setLeverage(this._bot.leverage)
             })
             .catch((err) => {
                 Logger.error(`Error setting up trader, `, err)

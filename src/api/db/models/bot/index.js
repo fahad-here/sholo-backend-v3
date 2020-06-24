@@ -28,12 +28,10 @@ const BotSchema = new mongoose.Schema({
     },
     _previousOrderId: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true,
         ref: 'order'
     },
     side: {
         type: String,
-        required: true,
         enum: ['long', 'short']
     },
     // s1 or l1

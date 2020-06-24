@@ -1,5 +1,5 @@
 const Strategy = require('../base')
-
+const BigNumber = require('bignumber.js')
 class Sholo extends Strategy {
     constructor(
         onBuySignal,
