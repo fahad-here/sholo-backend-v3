@@ -11,6 +11,10 @@ const BotConfigSessionSchema = new mongoose.Schema({
         required: true,
         ref: 'User'
     },
+    _botConfigId: { type: Number, required: true },
+    _botIds: {
+        type: Object
+    },
     selectedAccounts: {
         type: Object,
         required: true

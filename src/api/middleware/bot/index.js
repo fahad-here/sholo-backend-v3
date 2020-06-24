@@ -192,6 +192,7 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
             marketThreshold,
             feeType,
             _userId,
+            _botConfigId: botConfig.id,
             startedAt: new Date(),
             strategy
         }).save()
@@ -211,6 +212,11 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
                 botConfig,
                 botConfigSession,
                 accountDetails
+            )
+            botConfigSession = await BotConfigSessionSchema.findByIdAndUpdate(
+                { _id: botConfigSession._id },
+                { $set: { [`_botIds.${bot.order}`]: bot.id } },
+                { new: true }
             )
             bots.push(bot)
         }
@@ -679,10 +685,27 @@ async function runBotConfigAction(req, res, next) {
     }
 }
 
+async function getAllBotSessions(req, res, next) {
+    try {
+        const _userId = req.user._id
+        const botSessions = await BotConfigSessionSchema.find({ _userId })
+        if (!botSessions || botSessions.length === 0)
+            return res
+                .status(404)
+                .json(ResponseMessage(true, 'No bot sessions found.'))
+        return res
+            .status(200)
+            .json(ResponseMessage(false, 'Successful Request', { botSessions }))
+    } catch (e) {
+        return next(e)
+    }
+}
+
 module.exports = {
     createBotConfig,
     editBotConfig,
     deleteBotConfig,
     getAllBotConfigs,
-    runBotConfigAction
+    runBotConfigAction,
+    getAllBotSessions
 }

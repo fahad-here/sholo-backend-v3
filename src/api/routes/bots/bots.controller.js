@@ -5,6 +5,12 @@ const { Validation } = require('../../../utils')
 const { ValidateBody, Schemas } = Validation
 
 botsController.get(
+    '/sessions/',
+    AuthMiddleware.requireJWT,
+    BotMiddleware.getAllBotSessions
+)
+
+botsController.get(
     '/',
     AuthMiddleware.requireJWT,
     BotMiddleware.getAllBotConfigs
