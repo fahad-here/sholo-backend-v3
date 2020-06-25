@@ -30,6 +30,18 @@ const BotSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'order'
     },
+    _accountIdSimple: {
+        type: Number
+    },
+    _botConfigIdSimple: {
+        type: Number
+    },
+    _botSessionIdSimple: {
+        type: Number
+    },
+    _previousOrderIdSimple: {
+        type: Number
+    },
     side: {
         type: String,
         enum: ['long', 'short']

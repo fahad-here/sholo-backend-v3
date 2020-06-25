@@ -28,6 +28,24 @@ const PositionSchema = new mongoose.Schema({
         required: true,
         ref: 'bot-config-session'
     },
+    _botIdSimple: {
+        type: Number
+    },
+    _botConfigIdSimple: {
+        type: Number
+    },
+    _botSessionIdSimple: {
+        type: Number
+    },
+    _accountIdSimple: {
+        type: Number
+    },
+    _buyOrderIdSimple: {
+        type: Number
+    },
+    _sellOrderIdSimple: {
+        type: Number
+    },
     _buyOrderId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true

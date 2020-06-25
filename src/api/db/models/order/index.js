@@ -29,6 +29,18 @@ const OrderSchema = new Schema(
             required: true,
             ref: 'account'
         },
+        _botIdSimple: {
+            type: Number
+        },
+        _botConfigIdSimple: {
+            type: Number
+        },
+        _botSessionIdSimple: {
+            type: Number
+        },
+        _accountIdSimple: {
+            type: Number
+        },
         _orderId: {
             type: String,
             required: true

@@ -111,12 +111,14 @@ const _createBot = async (
         leverage,
         marketThreshold,
         feeType,
-        strategy
+        strategy,
+        id: _botConfigIdSimple
     } = botConfig
     const _accountId = accountDetails._id
+    const _accountIdSimple = accountDetails.id
     const initialBalance = startingBalances[order]
     const direction = order.includes('l') ? 'long' : 'short'
-    const { _id: _botSessionId } = botConfigSession
+    const { _id: _botSessionId, id: _botSessionIdSimple } = botConfigSession
     if (existingBot)
         return await BotSchema.findOneAndUpdate(
             { _botConfigId, order },
@@ -126,6 +128,9 @@ const _createBot = async (
                     _accountId,
                     _botConfigId,
                     _botSessionId,
+                    _accountIdSimple,
+                    _botConfigIdSimple,
+                    _botSessionIdSimple,
                     direction,
                     order,
                     exchange,
@@ -156,6 +161,9 @@ const _createBot = async (
             _accountId,
             _botConfigId,
             _botSessionId,
+            _accountIdSimple,
+            _botConfigIdSimple,
+            _botSessionIdSimple,
             direction,
             order,
             exchange,
@@ -204,7 +212,8 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
             marketThreshold,
             feeType,
             active,
-            strategy
+            strategy,
+            id: _botConfigIdSimple
         } = botConfig
         if (active)
             return res
@@ -226,6 +235,7 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
             feeType,
             _userId,
             _botConfigId: botConfig.id,
+            _botConfigIdSimple,
             startedAt: new Date(),
             strategy,
             active: true

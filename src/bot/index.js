@@ -118,11 +118,15 @@ class Bot {
             _userId,
             _botConfigId,
             _botSessionId,
+            _accountIdSimple,
+            _botConfigIdSimple,
+            _botSessionIdSimple,
             exchange,
             feeType,
             symbol,
             leverage,
-            order: botOrder
+            order: botOrder,
+            id: _botIdSimple
         } = this._bot
         const { _id, accountType } = this._account
         const side = accountType === POSITION_SHORT ? SELL : BUY
@@ -145,6 +149,10 @@ class Bot {
             _botConfigId,
             _botSessionId,
             _accountId: _id,
+            _botIdSimple,
+            _accountIdSimple,
+            _botConfigIdSimple,
+            _botSessionIdSimple,
             _orderId: orderDetails.id,
             timestamp: orderDetails.datetime,
             side,
@@ -217,7 +225,12 @@ class Bot {
                 _botConfigId,
                 _botSessionId,
                 _accountId: _id,
-                _buyOrderId: orderDetails.id,
+                _botIdSimple,
+                _accountIdSimple,
+                _botConfigIdSimple,
+                _botSessionIdSimple,
+                _buyOrderId: order._id,
+                _buyOrderIdSimple: order.id,
                 isOpen: true,
                 side,
                 entryPrice: price,
@@ -236,7 +249,9 @@ class Bot {
             const changedSet = {
                 exitPrice: price,
                 isOpen: false,
-                endedAt: timestamp
+                endedAt: timestamp,
+                _sellOrderId: order._id,
+                _sellOrderIdSimple: order.id
             }
             this._account = await AccountSchema
             const pos = await PositionSchema.findByIdAndUpdate(

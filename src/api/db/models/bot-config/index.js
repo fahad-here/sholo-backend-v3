@@ -32,6 +32,9 @@ const BotConfigSchema = new mongoose.Schema({
     currentSession: {
         type: mongoose.Schema.Types.ObjectId
     },
+    currentSessionSimple: {
+        type: Number
+    },
     feeType: { type: String, required: true, enum: ['maker', 'taker'] },
     active: {
         type: Boolean,
