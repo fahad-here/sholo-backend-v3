@@ -4,6 +4,17 @@ const { AuthMiddleware, BotMiddleware } = require('../../middleware')
 const { Validation } = require('../../../utils')
 const { ValidateBody, Schemas } = Validation
 
+botsController.get(
+    '/bot-config/:id',
+    AuthMiddleware.requireJWT,
+    BotMiddleware.getAllSessionDetails
+)
+botsController.get(
+    '/bot-config/:botId/:sessionId',
+    AuthMiddleware.requireJWT,
+    BotMiddleware.getCurrentSessionDetails
+)
+
 botsController.get('/all/', AuthMiddleware.requireJWT, BotMiddleware.getAllBots)
 
 botsController.get(

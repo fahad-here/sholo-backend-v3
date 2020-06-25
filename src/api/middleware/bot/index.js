@@ -778,13 +778,134 @@ async function getAllPositions(req, res, next) {
             return res
                 .status(404)
                 .json(ResponseMessage(true, 'No orders found.'))
-        return res
-            .status(200)
-            .json(
-                ResponseMessage(false, 'Successful Request', {
-                    orders: positions
-                })
+        return res.status(200).json(
+            ResponseMessage(false, 'Successful Request', {
+                orders: positions
+            })
+        )
+    } catch (e) {
+        return next(e)
+    }
+}
+
+const _getBotConfigSessionOrdersAndPositions = async (
+    _botConfigId,
+    _botSessionId,
+    _userId
+) => {
+    let orders = await OrderSchema.find({
+        _botConfigId,
+        _botSessionId,
+        _userId
+    })
+    let positions = await PositionSchema.find({
+        _botConfigId,
+        _botSessionId,
+        _userId
+    })
+    return {
+        orders,
+        positions
+    }
+}
+
+async function getAllSessionDetails(req, res, next) {
+    try {
+        const _id = req.params.id
+        const _userId = req.user._id
+        if (!_id)
+            return res
+                .status(400)
+                .json(ResponseMessage(true, 'Please provide a bot config id'))
+        const botConfig = await BotConfigSchema.findById({ _id })
+        if (!botConfig)
+            return res
+                .status(404)
+                .json(ResponseMessage(true, 'Bot config not found'))
+        const botSessions = await BotConfigSessionSchema.find({
+            _botConfigId: botConfig._id,
+            _userId
+        })
+        const bots = await BotSchema.find({
+            _botConfigId: botConfig._id,
+            active: true,
+            _userId
+        })
+        let sessionOrders = []
+        let sessionPositions = []
+        for (let i = 0; i < botSessions.length; i++) {
+            let { orders, positions } = _getBotConfigSessionOrdersAndPositions(
+                botConfig._id,
+                botSessions[i]._id,
+                _userId
             )
+            sessionOrders.push({
+                [`${botSessions[i]._id}`]: orders
+            })
+            sessionPositions.push({
+                [`${botSessions[i]._id}`]: positions
+            })
+        }
+        return res.json(
+            ResponseMessage(false, 'Successful request', {
+                sessionOrders,
+                sessionPositions,
+                botSessions,
+                bots,
+                botConfig
+            })
+        )
+    } catch (e) {
+        return next(e)
+    }
+}
+
+async function getCurrentSessionDetails(req, res, next) {
+    try {
+        const _botId = req.params.botId
+        const _botSessionId = req.params.sessionId
+        const _userId = req.user._id
+        if (!_botSessionId)
+            return res
+                .status(400)
+                .json(
+                    ResponseMessage(
+                        true,
+                        'Please provide a bot config & a session id'
+                    )
+                )
+        const botConfig = await BotConfigSchema.findById({ _id: _botId })
+        if (!botConfig)
+            return res
+                .status(404)
+                .json(ResponseMessage(true, 'Bot config not found'))
+        const botSession = await BotConfigSessionSchema.findOne({
+            _botConfigId: botConfig._id,
+            _userId,
+            _id: _botSessionId
+        })
+        const bots = await BotSchema.find({
+            _botConfigId: botConfig._id,
+            active: true,
+            _userId,
+            _botSessionId
+        })
+
+        let { orders, positions } = _getBotConfigSessionOrdersAndPositions(
+            botConfig._id,
+            botSessions[i]._id,
+            _userId
+        )
+
+        return res.json(
+            ResponseMessage(false, 'Successful request', {
+                sessionOrders: orders,
+                sessionPositions: positions,
+                botSession,
+                bots,
+                botConfig
+            })
+        )
     } catch (e) {
         return next(e)
     }
@@ -799,5 +920,7 @@ module.exports = {
     getAllBotSessions,
     getAllBots,
     getAllOrders,
-    getAllPositions
+    getAllPositions,
+    getAllSessionDetails,
+    getCurrentSessionDetails
 }
