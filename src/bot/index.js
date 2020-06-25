@@ -339,22 +339,34 @@ class Bot {
         }
     }
 
-    _onOrderChangeEmitter(
-        id,
+    async _onOrderChangeEmitter(
+        exchange,
         pair,
-        orderId,
-        orderStatus,
+        _orderId,
+        status,
         totalOrderQuantity,
         filledQuantity,
         remainQuantity
     ) {
-        Logger.info('order ', {
-            orderId,
-            orderStatus,
-            totalOrderQuantity,
-            filledQuantity,
-            remainQuantity
-        })
+        try {
+            const order = await OrderSchema.findOneAndUpdate(
+                { _orderId, pair },
+                {
+                    $set: {
+                        status,
+                        totalOrderQuantity,
+                        filledQuantity,
+                        remainQuantity
+                    }
+                }
+            )
+            this._sendSignalToParent('socket', `${this._bot._id}`, {
+                type: 'order',
+                order
+            })
+        } catch (e) {
+            Logger.error('Error saving order on change', e)
+        }
     }
 
     async _onPositionChangeEmitter(
