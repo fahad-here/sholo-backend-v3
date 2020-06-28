@@ -451,7 +451,14 @@ class Bot {
                 )
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
                     type: 'position',
-                    position: pos
+                    position: this._position
+                })
+                this._sendSignalToParent('email', `${this._bot._id}`, {
+                    account: this._account,
+                    bot: this._bot,
+                    price,
+                    liquidated: true,
+                    whatPrice: 'liquidation price'
                 })
                 this._position = null
                 await this.stopBot()
@@ -466,6 +473,13 @@ class Bot {
         if (!this._position && !this._inProgress) {
             await this.onBuySellSignal(price, timestamp, true)
             //send email notification
+            this._sendSignalToParent('email', `${this._bot._id}`, {
+                account: this._account,
+                bot: this._bot,
+                price,
+                liquidated: false,
+                whatPrice: 'Price R'
+            })
         }
     }
 
@@ -628,7 +642,7 @@ class Bot {
                 )
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
                     type: 'update',
-                    position: this._bot
+                    bot: this._bot
                 })
             } else {
                 console.log(

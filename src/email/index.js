@@ -1,5 +1,5 @@
-import SendEmail from './send-email'
-import BodyTemplates from './body-templates'
+const SendEmail = require('./send-email')
+const BodyTemplates = require('./body-templates')
 module.exports = {
     SendEmail,
     BodyTemplates

@@ -139,13 +139,15 @@ class Sholo extends Strategy {
             } else {
                 console.log('short: entry price')
                 //enter positions
-                new BigNumber(this.price).isLessThanOrEqualTo(
-                    new BigNumber(entryPrice).plus(this.highThreshold)
-                ) &&
+                if (
+                    new BigNumber(this.price).isLessThanOrEqualTo(
+                        new BigNumber(entryPrice).plus(this.highThreshold)
+                    ) &&
                     new BigNumber(this.price).isGreaterThanOrEqualTo(
                         new BigNumber(entryPrice).minus(this.lowThreshold)
                     )
-                this.onBuySignal(this.price, this.timestamp)
+                )
+                    this.onBuySignal(this.price, this.timestamp)
             }
         }
     }

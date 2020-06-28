@@ -1,5 +1,5 @@
 const { DBSchemas } = require('../api/db')
-const { BotSchema } = DBSchemas
+const { BotSchema, UserSchema } = DBSchemas
 const { fork } = require('child_process')
 const { Logger } = require('../utils')
 const parentBotLogDir = require('path').resolve(
@@ -9,9 +9,9 @@ const parentBotLogDir = require('path').resolve(
 const parentBotsDir = require('path').resolve(__dirname, '../../src/bot')
 const fs = require('fs')
 const SocketIOConnection = require('../../src/socketio')
-
+const { SendEmail, BodyTemplates } = require('../email')
 const HEART_BEAT = 15000 //milliseconds
-
+const { PriceReachedEmail } = BodyTemplates
 let botCoordinator = null
 
 class BotCoordinator {
@@ -63,14 +63,42 @@ class BotCoordinator {
                 stdio: ['ignore', out, err, 'ipc']
             }
         )
-        this.bots[bot._id].on('message', ({ command, args }) => {
+        this.bots[bot._id].on('message', async ({ command, args }) => {
             const { channel, message } = args
-            if (command === 'socket') {
-                for (let id of Object.keys(connection.sockets))
-                    connection.sockets[id].emit(
-                        channel,
-                        JSON.stringify(message)
-                    )
+            switch (command) {
+                case 'socket':
+                    for (let id of Object.keys(connection.sockets))
+                        connection.sockets[id].emit(
+                            channel,
+                            JSON.stringify(message)
+                        )
+                    break
+                case 'email':
+                    const {
+                        account,
+                        bot,
+                        price,
+                        liquidated,
+                        whatPrice
+                    } = message
+                    const user = await UserSchema.findById({
+                        _id: account._userId
+                    })
+                    const { notificationEmails, notificationEnabled } = user
+                    if (notificationEnabled)
+                        await SendEmail(
+                            'fmohajir@gmail.com',
+                            notificationEmails,
+                            'Sholo: Email notification',
+                            PriceReachedEmail(
+                                user.name,
+                                whatPrice,
+                                price,
+                                liquidated,
+                                account
+                            )
+                        )
+                    break
             }
         })
     }

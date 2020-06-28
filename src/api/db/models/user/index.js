@@ -11,6 +11,11 @@ const UserSchema = new Schema({
     email: {
         type: String,
         required: true
+    },
+    notificationEmails: [String],
+    notificationEnabled: {
+        type: Boolean,
+        default: true
     }
 })
 UserSchema.plugin(findOrCreate)
