@@ -24,7 +24,7 @@ class BotCoordinator {
                     JSON.stringify({
                         type: 'update',
                         bot: null,
-                        statusUpdate: { active: false }
+                        statusUpdate: { active: false, _id: key }
                     })
                 )
             this.stopBot(key)
