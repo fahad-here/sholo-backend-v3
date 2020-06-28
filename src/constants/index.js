@@ -81,6 +81,8 @@ const SHOLO_STRATEGY = 'SHOLO_V3'
 
 const ALLOWED_STRATEGIES = [SHOLO_STRATEGY]
 
+const BIDS = 'bids'
+const ASKS = 'asks'
 module.exports = {
     FEES,
     CANDLE_POSITIONS,
@@ -104,5 +106,7 @@ module.exports = {
     BITMEX_FEE_CUTOFF,
     BTC,
     LIMIT_FEES,
-    MARKET_FEES
+    MARKET_FEES,
+    BIDS,
+    ASKS
 }

@@ -8,6 +8,10 @@ class Trade {
         if (testNet) this.exchange.setTestNet()
     }
 
+    async getOrderbook(symbol, limit) {
+        return await this.exchange.getOrderbook(symbol, limit)
+    }
+
     getBalance() {
         return this.exchange.getFetchBalance()
     }

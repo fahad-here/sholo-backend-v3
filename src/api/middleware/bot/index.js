@@ -415,10 +415,7 @@ const _stopBot = async (req, res, next, botConfig, _userId) => {
             // update s1 and l1 bots
             // not sure if open positions need to be closed on stopping the bot
             // await _closeOpenBTCPositions(selectedAccounts[key], symbol)
-            await _changeAccountStatus(
-                selectedAccounts[key],
-                false
-            )
+            await _changeAccountStatus(selectedAccounts[key], false)
             const bot = await BotSchema.findOneAndUpdate(
                 {
                     _accountId: selectedAccounts[key],

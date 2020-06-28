@@ -24,7 +24,9 @@ const {
     LIMIT_FEES,
     MARKET_FEES,
     FEE_TYPE_MAKER,
-    FEE_TYPE_TAKER
+    FEE_TYPE_TAKER,
+    BIDS,
+    ASKS
 } = require('../../src/constants')
 const priceSubscriptionClient = redis.createClient()
 const botClient = redis.createClient()
@@ -52,6 +54,48 @@ class Bot {
                 this.onPriceRReachedSignal(price, timeStamp)
             }
         })
+    }
+
+    async _checkLiquidity(amount, price) {
+        const { symbol, marketThreshold, positionOpen, order } = this._bot
+        const l1OrderBook = await this._trader.getOrderbook(symbol, 200)
+        const isLong = order.includes('l')
+        let side = isLong
+            ? positionOpen
+                ? BIDS
+                : ASKS
+            : positionOpen
+            ? ASKS
+            : BIDS
+        let thresholdAmount = 0
+        Logger.info(`Side : ${side}`)
+        if (amount > l1OrderBook[side][0][1]) {
+            for (let i = 0; i < l1OrderBook[side].length; i++) {
+                switch (side) {
+                    case 'bids':
+                        if (
+                            price - marketThreshold <=
+                            l1OrderBook[side][i][0]
+                        ) {
+                            thresholdAmount =
+                                thresholdAmount + l1OrderBook[side][i][1]
+                        } else break
+                        break
+                    case 'asks':
+                        if (
+                            price + marketThreshold >=
+                            l1OrderBook[side][i][0]
+                        ) {
+                            thresholdAmount =
+                                thresholdAmount + l1OrderBook[side][i][1]
+                        } else break
+                        break
+                }
+            }
+            Logger.info(`Amount : ${amount}`)
+            Logger.info(`Threshold Amount : ${thresholdAmount}`)
+            return amount >= thresholdAmount
+        } else return true
     }
 
     async _calculateFees(preOrderBalance) {
@@ -138,42 +182,39 @@ class Bot {
         this._inProgress = true
         console.log('in progress', this._inProgress)
         try {
-            const liquidityCheck = true
+            const {
+                _userId,
+                _botConfigId,
+                _botSessionId,
+                _accountIdSimple,
+                _botConfigIdSimple,
+                _botSessionIdSimple,
+                exchange,
+                feeType,
+                symbol,
+                leverage,
+                order: botOrder,
+                id: _botIdSimple,
+                positionOpen
+            } = this._bot
+            const { _id, accountType } = this._account
+            const side =
+                accountType === POSITION_SHORT
+                    ? positionOpen
+                        ? BUY
+                        : SELL
+                    : positionOpen
+                    ? SELL
+                    : BUY
+            //calculate fees before placing order
+            const preOrderBalance = await this._trader.getBalance()
+            console.log('pro order balance ', preOrderBalance)
+            const { amount, margin } = await this._calculateAmount(price, isBuy)
+            console.log(this._bot._id, side)
+            console.log('amount', amount)
+            console.log('margin', margin)
+            const liquidityCheck = await this._checkLiquidity(amount, price)
             if (liquidityCheck) {
-                const {
-                    _userId,
-                    _botConfigId,
-                    _botSessionId,
-                    _accountIdSimple,
-                    _botConfigIdSimple,
-                    _botSessionIdSimple,
-                    exchange,
-                    feeType,
-                    symbol,
-                    leverage,
-                    order: botOrder,
-                    id: _botIdSimple,
-                    positionOpen
-                } = this._bot
-                const { _id, accountType } = this._account
-                const side =
-                    accountType === POSITION_SHORT
-                        ? positionOpen
-                            ? BUY
-                            : SELL
-                        : positionOpen
-                        ? SELL
-                        : BUY
-                //calculate fees before placing order
-                const preOrderBalance = await this._trader.getBalance()
-                console.log('pro order balance ', preOrderBalance)
-                const { amount, margin } = await this._calculateAmount(
-                    price,
-                    isBuy
-                )
-                console.log(this._bot._id, side)
-                console.log('amount', amount)
-                console.log('margin', margin)
                 const { liquidation } = Bitmex._calculateLiquidation(
                     amount,
                     price,
