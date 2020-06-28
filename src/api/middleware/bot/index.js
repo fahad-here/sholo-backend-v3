@@ -738,11 +738,14 @@ async function runBotConfigAction(req, res, next) {
 async function getAllBotSessions(req, res, next) {
     try {
         const _userId = req.user._id
-        const botSessions = await BotConfigSessionSchema.find({ _userId })
+        let botSessions = await BotConfigSessionSchema.find({ _userId })
         if (!botSessions || botSessions.length === 0)
             return res
                 .status(404)
                 .json(ResponseMessage(true, 'No bot sessions found.'))
+        botSessions = botSessions.sort(
+            (a, b) => new Date(b.startedAt) - new Date(a.startedAt)
+        )
         return res
             .status(200)
             .json(ResponseMessage(false, 'Successful Request', { botSessions }))
@@ -754,9 +757,10 @@ async function getAllBotSessions(req, res, next) {
 async function getAllBots(req, res, next) {
     try {
         const _userId = req.user._id
-        const bots = await BotSchema.find({ _userId })
+        let bots = await BotSchema.find({ _userId })
         if (!bots || bots.length === 0)
             return res.status(404).json(ResponseMessage(true, 'No bots found.'))
+        bots = bots.sort((a, b) => b.id - a.id)
         return res
             .status(200)
             .json(ResponseMessage(false, 'Successful Request', { bots }))
@@ -768,11 +772,14 @@ async function getAllBots(req, res, next) {
 async function getAllOrders(req, res, next) {
     try {
         const _userId = req.user._id
-        const orders = await OrderSchema.find({ _userId })
+        let orders = await OrderSchema.find({ _userId })
         if (!orders || orders.length === 0)
             return res
                 .status(404)
                 .json(ResponseMessage(true, 'No orders found.'))
+        orders = orders.sort(
+            (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+        )
         return res
             .status(200)
             .json(ResponseMessage(false, 'Successful Request', { orders }))
@@ -784,11 +791,14 @@ async function getAllOrders(req, res, next) {
 async function getAllPositions(req, res, next) {
     try {
         const _userId = req.user._id
-        const positions = await PositionSchema.find({ _userId })
+        let positions = await PositionSchema.find({ _userId })
         if (!positions || positions.length === 0)
             return res
                 .status(404)
-                .json(ResponseMessage(true, 'No orders found.'))
+                .json(ResponseMessage(true, 'No positions found.'))
+        positions = positions.sort(
+            (a, b) => new Date(b.startedAt) - new Date(a.startedAt)
+        )
         return res.status(200).json(
             ResponseMessage(false, 'Successful Request', {
                 positions
