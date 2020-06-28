@@ -99,15 +99,14 @@ class Bot {
     }
 
     async _calculateFees(preOrderBalance) {
-        console.log('calculating fees')
+        Logger.info('calculating fees')
         const postOrderBalance = await this._trader.getBalance()
-        console.log('post order balance ', postOrderBalance)
         const difference = this._bot.positionOpen
             ? postOrderBalance.free[BTC] - preOrderBalance.free[BTC]
             : preOrderBalance.free[BTC] - postOrderBalance.free[BTC]
-        console.log('fees difference', difference)
+        Logger.info(`fees difference: ${difference}`)
         const feePercent = FEES[this._bot.feeType]
-        console.log('fees type', feePercent)
+        Logger.info(`fees type: ${feePercent}`)
         const leverage = this._bot.leverage
         let fees
         switch (feePercent) {
@@ -144,9 +143,11 @@ class Bot {
             amount = new BigNumber(previousOrder.amount)
                 .integerValue(BigNumber.ROUND_DOWN)
                 .toFixed(0)
-            console.log(currentUsdPrice)
-            console.log(amount)
-            console.log(margin)
+            Logger.info(
+                `(Currently Open) current usd price: ${currentUsdPrice}`
+            )
+            Logger.info(`(Currently Open)amount to buy: ${amount}`)
+            Logger.info(`(Currently Open)margin amount ${margin}`)
             return { amount, margin }
         } else {
             const tradeBalanceBtc = new BigNumber(balance)
@@ -161,9 +162,11 @@ class Bot {
                 .multipliedBy(0.96)
                 .integerValue(BigNumber.ROUND_DOWN)
                 .toFixed(0)
-            console.log(currentUsdPrice)
-            console.log(amount)
-            console.log(margin)
+            Logger.info(
+                `(Currently Closed) current usd price: ${currentUsdPrice}`
+            )
+            Logger.info(`(Currently Closed) amount to buy: ${amount}`)
+            Logger.info(`(Currently Closed) margin amount ${margin}`)
             return { amount, margin }
         }
     }
@@ -180,7 +183,7 @@ class Bot {
 
     async onBuySellSignal(price, timestamp, isBuy) {
         this._inProgress = true
-        console.log('in progress', this._inProgress)
+        Logger.info(`in progress: ${this._inProgress}`)
         try {
             const {
                 _userId,
@@ -208,11 +211,11 @@ class Bot {
                     : BUY
             //calculate fees before placing order
             const preOrderBalance = await this._trader.getBalance()
-            console.log('pro order balance ', preOrderBalance)
+            Logger.info(`pre order balance`, preOrderBalance)
             const { amount, margin } = await this._calculateAmount(price, isBuy)
-            console.log(this._bot._id, side)
-            console.log('amount', amount)
-            console.log('margin', margin)
+            Logger.info(`${this._bot._id} ${side}`)
+            Logger.info(`amount : ${amount}`)
+            Logger.info(`margin ${margin}`)
             const liquidityCheck = await this._checkLiquidity(amount, price)
             if (liquidityCheck) {
                 const { liquidation } = Bitmex._calculateLiquidation(
@@ -225,9 +228,9 @@ class Bot {
                     side,
                     amount
                 )
-                console.log('post order')
+                Logger.info(`post order`)
                 const fees = await this._calculateFees(preOrderBalance)
-                console.log('fees ', fees)
+                Logger.info(`fees ${fees}`)
                 const botSession = await BotConfigSessionSchema.findById({
                     _id: _botSessionId
                 })
@@ -261,7 +264,7 @@ class Bot {
                     leverage: leverage,
                     orderSequence: botSession.orderSequence
                 }).save()
-                console.log('post local order save')
+                Logger.info(`post local order save`)
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
                     type: 'order',
                     order
@@ -297,20 +300,20 @@ class Bot {
                     type: 'update',
                     bot: this._bot
                 })
-                console.log('post updated bot')
+                Logger.info(`post updated bot`)
                 const newBal = await this._trader.getBalance()
                 this._account = await AccountSchema.findByIdAndUpdate(
                     { _id: this._account._id },
                     { $set: { balance: newBal } },
                     { new: true }
                 )
-                console.log('post updated account balance')
+                Logger.info(`post updated account balance`)
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
                     type: 'account',
                     account: this._account
                 })
                 if (isBuy) {
-                    console.log('is buy, setting position')
+                    Logger.info(`is buy, setting position`)
                     const positionData = {
                         _userId,
                         _botId: this._botId,
@@ -338,14 +341,14 @@ class Bot {
                         positionData
                     ).save()
                     this._positionId = this._position._id
-                    console.log('setting position', this._position)
+                    Logger.info(`setting position`, this._position)
                     this._sendSignalToParent('socket', `${this._bot._id}`, {
                         type: 'position',
                         position: this._position
                     })
-                    console.log('post buy position bot')
+                    Logger.info(`post buy position bot`)
                 } else {
-                    console.log('is sell, setting position details')
+                    Logger.info(`is sell, setting position details`)
                     const changedSet = {
                         exitPrice: price,
                         endedAt: timestamp,
@@ -358,25 +361,25 @@ class Bot {
                             { $set: changedSet },
                             { new: true }
                         )
-                        console.log('post sell changing position')
+                        Logger.info(`post sell changing position`)
                         this._sendSignalToParent('socket', `${this._bot._id}`, {
                             type: 'position',
                             position: pos
                         })
                         this._positionId = null
-                        console.log('post sell position bot')
+                        Logger.info(`post sell position bot`)
                     } else {
                         this._position = await PositionSchema.findByIdAndUpdate(
                             { _id: this._position._id },
                             { $set: changedSet },
                             { new: true }
                         )
-                        console.log('post sell changing position')
+                        Logger.info(`post sell changing position`)
                         this._sendSignalToParent('socket', `${this._bot._id}`, {
                             type: 'position',
                             position: this._position
                         })
-                        console.log('post sell position bot')
+                        Logger.info(`post sell position bot`)
                     }
                 }
                 const updateSequence = isBuy
@@ -396,23 +399,22 @@ class Bot {
                     type: 'session',
                     session
                 })
-                console.log('post updated session position bot')
+                Logger.info(`post updated session position bot`)
             } else {
-                console.log('market is not liquid enough')
+                Logger.info(`market is not liquid enough`)
             }
             this._inProgress = false
-            console.log('post everything progress', this._inProgress)
+            Logger.info(`post everything progress: ${this._inProgress}`)
         } catch (e) {
             Logger.error('error in buy sell signal', e)
-            console.log(e)
             this._inProgress = false
-            console.log('post error progress', this._inProgress)
+            Logger.error('post error progress ' + this._inProgress)
         }
     }
 
     async onBuySignal(price, timestamp) {
         if (!this._position && !this._inProgress) {
-            console.log('on buy signal')
+            Logger.info(`on buy signal`)
             await this.onBuySellSignal(price, timestamp, true)
             // save this order in db
             // create a position
@@ -429,7 +431,7 @@ class Bot {
         if (this._position.isOpen && !this._inProgress)
             Logger.error('Current position is not open')
         if (this._position && !this._inProgress) {
-            console.log('on sell signal')
+            Logger.info(`on sell signal`)
             await this.onBuySellSignal(price, timestamp, false)
         }
     }
@@ -437,7 +439,7 @@ class Bot {
     async onLiquidatedSignal(price, timestamp) {
         try {
             if (this._position && !this._inProgress) {
-                console.log('liquidated signal ')
+                Logger.info(`liquidated signal `)
                 const changedSet = {
                     exitPrice: price,
                     isOpen: false,
@@ -469,7 +471,7 @@ class Bot {
     }
 
     async onPriceRReachedSignal(price, timestamp) {
-        console.log('onPriceRReachedSignal')
+        Logger.info(`onPriceRReachedSignal`)
         if (!this._position && !this._inProgress) {
             await this.onBuySellSignal(price, timestamp, true)
             //send email notification
@@ -485,7 +487,7 @@ class Bot {
 
     async onTickerPriceReceived(price, timestamp) {
         try {
-            console.log('looking for active positions')
+            Logger.info(`looking for active positions`)
             const hasPositions = await PositionSchema.findOne({
                 _botId: this._bot._id,
                 _botConfigId: this._bot._botConfigId,
@@ -547,12 +549,12 @@ class Bot {
     ) {
         let changed = false
         let changedSet = {}
-        console.log('positon change current progress', this._inProgress)
-        console.log('positon change received data', isOpen)
+        Logger.info(`positon change current progress: ${this._inProgress}`)
+        Logger.info(`positon change received data isOpen: ${isOpen}`)
         if (isOpen) {
             if (this._position && !this._inProgress) {
-                console.log(
-                    'position exists and is open and not in progress',
+                Logger.info(
+                    `position exists and is open and not in progress: `,
                     this._position
                 )
                 if (this._position.margin !== margin) {
@@ -605,23 +607,17 @@ class Bot {
                     position: this._bot
                 })
             } else {
-                console.log(
-                    'position does not exist and is open',
+                Logger.info(
+                    `position does not exist and is open `,
                     this._position
                 )
             }
         } else {
             if (this._position) {
-                console.log('position exists and is not open', this._position)
-                console.log('position ', {
-                    isOpen,
-                    margin,
-                    positionSize,
-                    liquidationPrice,
-                    bankruptPrice,
-                    realisedPnl,
-                    unrealisedPnl
-                })
+                Logger.info(
+                    `position exists and is not open {}`,
+                    this._position
+                )
                 changedSet = {
                     ...changedSet,
                     isOpen,
@@ -645,15 +641,15 @@ class Bot {
                     bot: this._bot
                 })
             } else {
-                console.log(
-                    'position does not exist and is not open',
+                Logger.info(
+                    `position does not exist and is not open`,
                     this._position
                 )
             }
         }
 
         if (changed && this._position) {
-            console.log('position values changed and position exists')
+            Logger.info(`position values changed and position exists`)
             this._position = await PositionSchema.findByIdAndUpdate(
                 { _id: this._position._id },
                 { $set: changedSet },
@@ -665,7 +661,7 @@ class Bot {
             })
         }
         if (!isOpen) {
-            console.log('setting position null')
+            Logger.info(`setting position null`)
             this._position = null
         }
     }
@@ -782,13 +778,13 @@ class Bot {
 
     publishStopBot() {
         const data = JSON.stringify({ disable: true })
-        console.log(this._botId)
+        Logger.info(this._botId)
         pubClient.publish(this._botId, data)
     }
 
     async stopBot() {
         try {
-            console.log('stopping bot')
+            Logger.info(`stopping bot`)
             this._bot = await BotSchema.findOneAndUpdate(
                 {
                     _id: this._botId,
@@ -850,7 +846,6 @@ class Bot {
                 _botSessionId: bot.currentSession
             })
         } catch (e) {
-            console.log(e)
             Logger.error(`Error when looking for active position`, e)
         }
     }
@@ -858,22 +853,21 @@ class Bot {
     async init() {
         try {
             let bot = this._bot
-            console.log('setting bot')
+            Logger.info(`setting bot`)
             this._bot = await BotSchema.findOneAndUpdate(
                 { _id: bot._id, _userId: bot._userId },
                 { $set: { active: true } },
                 { new: true }
             )
-            console.log('finding active position')
+            Logger.info(`finding active position`)
             await this._findActivePosition(this._bot)
-            console.log('subscribing to events')
+            Logger.info(`subscribing to events`)
             await this._subscribeToEvents(this._bot)
             this._sendSignalToParent('socket', `${this._bot._id}`, {
                 type: 'update',
                 bot: this._bot
             })
         } catch (e) {
-            console.log(e)
             Logger.info('Error initializing bot : ' + bot._id)
             Logger.error('Error initializing bot', e)
             await this.stopBot()
