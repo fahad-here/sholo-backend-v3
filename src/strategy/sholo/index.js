@@ -1,13 +1,14 @@
 const Strategy = require('../base')
 const BigNumber = require('bignumber.js')
+
 class Sholo extends Strategy {
     constructor(
         onBuySignal,
         onSellSignal,
         onLiquidatedSignal,
         onPriceRReachedSignal,
-        lowThreshold = 0,
-        highThreshold = 0
+        lowThreshold = 5,
+        highThreshold = 5
     ) {
         super(onBuySignal, onSellSignal, onLiquidatedSignal)
         this.onPriceRReachedSignal = onPriceRReachedSignal
@@ -25,19 +26,18 @@ class Sholo extends Strategy {
             liquidationPrice,
             positionOpen
         } = this._bot
-        const hasPositions = true
-
         if (positionOpen) {
+            console.log('long: checking selling and liquidation strategy')
             if (
                 new BigNumber(this.price).isGreaterThanOrEqualTo(
                     new BigNumber(liquidationPrice).minus(this.lowThreshold)
-                ) ||
+                ) &&
                 new BigNumber(this.price).isLessThanOrEqualTo(
                     new BigNumber(liquidationPrice).plus(this.highThreshold)
                 )
-            )
+            ) {
                 this.onLiquidatedSignal(this.price, this.timestamp)
-            else if (
+            } else if (
                 new BigNumber(this.price).isLessThanOrEqualTo(
                     new BigNumber(priceP + priceA).plus(this.highThreshold)
                 ) &&
@@ -47,7 +47,8 @@ class Sholo extends Strategy {
             )
                 this.onSellSignal(this.price, this.timestamp)
         } else {
-            if (hasPositions) {
+            if (this.hasPositions) {
+                console.log('long: checking if buying strategy is met')
                 if (
                     new BigNumber(this.price).isLessThanOrEqualTo(
                         new BigNumber(priceP - priceB).plus(this.highThreshold)
@@ -68,13 +69,18 @@ class Sholo extends Strategy {
                     this.onPriceRReachedSignal(this.price, this.timestamp)
             } else {
                 //enter positions
-                new BigNumber(this.price).isLessThanOrEqualTo(
-                    new BigNumber(entryPrice).plus(this.highThreshold)
-                ) &&
+                console.log('long: enter position')
+                if (
+                    new BigNumber(this.price).isLessThanOrEqualTo(
+                        new BigNumber(entryPrice).plus(this.highThreshold)
+                    ) &&
                     new BigNumber(this.price).isGreaterThanOrEqualTo(
                         new BigNumber(entryPrice).minus(this.lowThreshold)
                     )
-                this.onBuySignal(this.price, this.timestamp)
+                ) {
+                    console.log('long: hit entry price')
+                    this.onBuySignal(this.price, this.timestamp)
+                }
             }
         }
     }
@@ -89,18 +95,18 @@ class Sholo extends Strategy {
             liquidationPrice,
             positionOpen
         } = this._bot
-        const hasPositions = true
         if (positionOpen) {
+            console.log('short: checking selling and liquidation strategy')
             if (
                 new BigNumber(this.price).isGreaterThanOrEqualTo(
                     new BigNumber(liquidationPrice).minus(this.lowThreshold)
-                ) ||
+                ) &&
                 new BigNumber(this.price).isLessThanOrEqualTo(
                     new BigNumber(liquidationPrice).plus(this.highThreshold)
                 )
-            )
+            ) {
                 this.onLiquidatedSignal(this.price, this.timestamp)
-            else if (
+            } else if (
                 new BigNumber(this.price).isLessThanOrEqualTo(
                     new BigNumber(priceP - priceA).plus(this.highThreshold)
                 ) &&
@@ -110,7 +116,8 @@ class Sholo extends Strategy {
             )
                 this.onSellSignal(this.price, this.timestamp)
         } else {
-            if (hasPositions) {
+            if (this.hasPositions) {
+                console.log('short: checking if buying strategy is met')
                 if (
                     new BigNumber(this.price).isLessThanOrEqualTo(
                         new BigNumber(priceP + priceB).plus(this.highThreshold)
@@ -130,6 +137,7 @@ class Sholo extends Strategy {
                 )
                     this.onPriceRReachedSignal(this.price, this.timestamp)
             } else {
+                console.log('short: entry price')
                 //enter positions
                 new BigNumber(this.price).isLessThanOrEqualTo(
                     new BigNumber(entryPrice).plus(this.highThreshold)
@@ -142,10 +150,18 @@ class Sholo extends Strategy {
         }
     }
 
-    async run(realtime, currentCandlePrice, timestamp, botDetails) {
+    async run(
+        realtime,
+        currentCandlePrice,
+        timestamp,
+        botDetails,
+        hasPositions
+    ) {
+        console.log('running strategy')
         this._bot = botDetails
         this.price = currentCandlePrice
         this.timestamp = timestamp
+        this.hasPositions = hasPositions
         const { order } = botDetails
         const isLongBot = order.indexOf('l') !== -1
         if (isLongBot) await this.longStrategy()

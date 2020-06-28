@@ -1,5 +1,9 @@
 const mongoose = require('mongoose')
-const { ALLOWED_EXCHANGES } = require('../../../../constants')
+const {
+    ALLOWED_EXCHANGES,
+    POSITION_SHORT,
+    POSITION_LONG
+} = require('../../../../constants')
 const AutoIncrement = require('mongoose-sequence')(mongoose)
 
 const PositionSchema = new mongoose.Schema({
@@ -51,13 +55,11 @@ const PositionSchema = new mongoose.Schema({
         required: true
     },
     _sellOrderId: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true
+        type: mongoose.Schema.Types.ObjectId
     },
     side: {
         type: String,
-        required: true,
-        enum: ['long', 'short']
+        enum: [POSITION_LONG, POSITION_SHORT]
     },
     isOpen: {
         type: Boolean,

@@ -12,24 +12,23 @@ class Trade {
         return this.exchange.getFetchBalance()
     }
 
-    setPair(pair) {
-        this.pair = pair
-        this.symbol = MAP_WS_PAIR_TO_SYMBOL[pair]
+    setPair(symbol) {
+        this.symbol = symbol
+        this.pair = MAP_WS_PAIR_TO_SYMBOL[symbol]
     }
 
     async setLeverage(leverage) {
         if (!this.symbol) throw new Error('Please set your exchange pair first')
         this.leverage = leverage
-        return await this.exchange.setLeverage(leverage, this.symbol)
+        return await this.exchange.setLeverage(leverage, this.pair)
     }
 
     //this only works on leverge for bitmex due to bitmex being a futures only exchange
     async createMarketOrder(side, amount, params = {}) {
         if (!this.symbol) throw new Error('Please set your exchange pair first')
         if (!this.leverage) throw new Error('Please set your leverage first')
-        const symbol = this.symbol
-        return await this.exchange.createLimitOrder(
-            symbol,
+        return await this.exchange.createMarketOrder(
+            this.symbol,
             side,
             amount,
             params

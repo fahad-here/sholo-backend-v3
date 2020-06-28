@@ -1,4 +1,4 @@
-const { SHOLO_STRATEGY } = require('../../../constants')
+const { SHOLO_STRATEGY, MAP_WS_PAIR_TO_SYMBOL } = require('../../../constants')
 const { ResponseMessage, GetExchangeClass } = require('../../../utils')
 const { DBSchemas } = require('../../db/index')
 const {
@@ -142,6 +142,7 @@ const _createBot = async (
                     priceR,
                     priceP: entryPrice,
                     entryPrice,
+                    positionOpen: false,
                     leverage,
                     liquidated: false,
                     marketThreshold,
@@ -234,7 +235,7 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
             marketThreshold,
             feeType,
             _userId,
-            _botConfigId: botConfig.id,
+            _botConfigId: botConfig._id,
             _botConfigIdSimple,
             startedAt: new Date(),
             strategy,
@@ -245,7 +246,10 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
             // close open positions if any
             // change account status
             // create a bot for s1 and l1
-            await _closeOpenBTCPositions(selectedAccounts[key], symbol)
+            await _closeOpenBTCPositions(
+                selectedAccounts[key],
+                MAP_WS_PAIR_TO_SYMBOL[symbol]
+            )
             const accountDetails = await _changeAccountStatus(
                 selectedAccounts[key],
                 true
@@ -411,7 +415,7 @@ const _stopBot = async (req, res, next, botConfig, _userId) => {
             // update s1 and l1 bots
             // not sure if open positions need to be closed on stopping the bot
             // await _closeOpenBTCPositions(selectedAccounts[key], symbol)
-            const accountDetails = await _changeAccountStatus(
+            await _changeAccountStatus(
                 selectedAccounts[key],
                 false
             )
@@ -790,7 +794,7 @@ async function getAllPositions(req, res, next) {
                 .json(ResponseMessage(true, 'No orders found.'))
         return res.status(200).json(
             ResponseMessage(false, 'Successful Request', {
-                orders: positions
+                positions
             })
         )
     } catch (e) {

@@ -2,7 +2,6 @@ const { DBSchemas } = require('../api/db')
 const { BotSchema } = DBSchemas
 const { fork } = require('child_process')
 const { Logger } = require('../utils')
-const { promisify } = require('util')
 const parentBotLogDir = require('path').resolve(
     __dirname,
     '../../.logs/bot_logs/'
@@ -11,7 +10,7 @@ const parentBotsDir = require('path').resolve(__dirname, '../../src/bot')
 const fs = require('fs')
 const SocketIOConnection = require('../../src/socketio')
 
-const HEART_BEAT = 5000 //milliseconds
+const HEART_BEAT = 15000 //milliseconds
 
 let botCoordinator = null
 
@@ -33,15 +32,19 @@ class BotCoordinator {
     }
 
     _processHandlers() {
-        ;[
+        const events = [
             `exit`,
             `SIGINT`,
             `SIGUSR1`,
             `SIGUSR2`,
             `uncaughtException`,
             `SIGTERM`
-        ].forEach((eventType) => {
+        ]
+        events.forEach((eventType) => {
             process.on(eventType, (eventType, exitCode) => {
+                Logger.info(
+                    `Event type happened ${eventType} with code ${exitCode}`
+                )
                 this._exitGracefully()
             })
         })
@@ -111,14 +114,17 @@ class BotCoordinator {
                         enabledAndInactiveBots.map((bot) => {
                             this.startBot(bot)
                         })
-                    if (disabledAndActiveBots.length > 0)
+                    if (
+                        disabledAndActiveBots.length > 0 &&
+                        Object.keys(this.bots).length !== 0
+                    )
                         disabledAndActiveBots.map((bot) => {
                             this.stopBot(bot._id)
                         })
                 })
                 .catch((err) => {
                     Logger.error('Error ', err)
-                    throw new Error('Error starting up active bots')
+                    throw new Error('Error starting/stopping up active bots')
                 })
         }, HEART_BEAT)
     }

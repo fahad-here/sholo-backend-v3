@@ -3,10 +3,7 @@ const { SHOLO_STRATEGY } = require('../constants')
 
 const Factory = (
     type,
-    onBuySignal,
-    onSellSignal,
-    onLiquidatedSignal,
-    onPriceRReachedSignal
+    { onBuySignal, onSellSignal, onLiquidatedSignal, onPriceRReachedSignal }
 ) => {
     switch (type) {
         case SHOLO_STRATEGY:

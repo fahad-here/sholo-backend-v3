@@ -14,7 +14,8 @@ class BaseExchange {
         //TODO: Change this when moving to production
         options = {
             ...options,
-            verbose: true
+            verbose: true,
+            enableRateLimit: true
         }
         this.exchange = new ccxt[id](options)
     }
@@ -64,7 +65,7 @@ class BaseExchange {
         this.exchange.urls['api'] = this.exchange.urls['test']
     }
 
-    setLeverage(leverage, symbol) {
+    setLeverage() {
         throw new Error('Need to implement this method')
     }
 
@@ -115,7 +116,7 @@ class BaseExchange {
         return await this.exchange.fetchOrders(symbol)
     }
 
-    async closeOpenPositions(symbol) {
+    async closeOpenPositions() {
         throw new Error('Need to implement this method')
     }
 
