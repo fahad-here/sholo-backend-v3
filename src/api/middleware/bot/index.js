@@ -214,7 +214,8 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
             feeType,
             active,
             strategy,
-            id: _botConfigIdSimple
+            id: _botConfigIdSimple,
+            currentSession
         } = botConfig
         if (active)
             return res
@@ -222,25 +223,31 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
                 .json(
                     ResponseMessage(true, 'Bot configuration is already active')
                 )
-        let botConfigSession = await new BotConfigSessionSchema({
-            selectedAccounts,
-            startingBalances,
-            exchange,
-            symbol,
-            entryPrice: { s1: entryPrice, l1: entryPrice },
-            priceA,
-            priceB,
-            priceR,
-            leverage,
-            marketThreshold,
-            feeType,
-            _userId,
-            _botConfigId: botConfig._id,
-            _botConfigIdSimple,
-            startedAt: new Date(),
-            strategy,
-            active: true
-        }).save()
+        let botConfigSession
+        if (!currentSession)
+            botConfigSession = await new BotConfigSessionSchema({
+                selectedAccounts,
+                startingBalances,
+                exchange,
+                symbol,
+                entryPrice: { s1: entryPrice, l1: entryPrice },
+                priceA,
+                priceB,
+                priceR,
+                leverage,
+                marketThreshold,
+                feeType,
+                _userId,
+                _botConfigId: botConfig._id,
+                _botConfigIdSimple,
+                startedAt: new Date(),
+                strategy,
+                active: true
+            }).save()
+        else
+            botConfigSession = await BotConfigSessionSchema.findById({
+                _id: currentSession
+            })
         let bots = []
         for (let key of Object.keys(selectedAccounts)) {
             // close open positions if any
@@ -295,7 +302,7 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
         return next(e)
     }
 }
-
+//5ef8ecf0ad8e4e5b98fb969d
 const _calculateStatsAndSetSession = async (
     botConfig,
     currentSession,
@@ -405,7 +412,7 @@ const _stopBot = async (req, res, next, botConfig, _userId) => {
                 .json(
                     ResponseMessage(
                         true,
-                        'Bot configuration is already inactive'
+                        'Bot configuration is already paused/stopped'
                     )
                 )
         let bots = []
@@ -462,9 +469,61 @@ const _stopBot = async (req, res, next, botConfig, _userId) => {
     }
 }
 
-const _killBot = (req, res, next, botConfig) => {
+const _pauseBot = async (req, res, next, botConfig, _userId) => {
     try {
-        return res.json(ResponseMessage(false, 'Place Holder'))
+        let { selectedAccounts, active, currentSession } = botConfig
+        if (!active)
+            return res
+                .status(500)
+                .json(
+                    ResponseMessage(
+                        true,
+                        'Bot configuration is already paused/stopped'
+                    )
+                )
+        let bots = []
+        for (let key of Object.keys(selectedAccounts)) {
+            const bot = await BotSchema.findOneAndUpdate(
+                {
+                    _accountId: selectedAccounts[key],
+                    _botSessionId: currentSession,
+                    _userId,
+                    _botConfigId: botConfig._id
+                },
+                {
+                    $set: {
+                        enabled: false
+                    }
+                },
+                { new: true }
+            )
+            bots.push(bot)
+        }
+        let botConfigSession = await BotConfigSessionSchema.findByIdAndUpdate(
+            { _id: currentSession },
+            {
+                $set: {
+                    active: false
+                }
+            }
+        )
+        //update the bot config with the session = null
+        const savedBotConfig = await BotConfigSchema.findByIdAndUpdate(
+            { _id: botConfig._id },
+            {
+                $set: {
+                    active: false
+                }
+            },
+            { new: true }
+        )
+        return res.json(
+            ResponseMessage(false, 'Bot configuration is now active', {
+                botConfig: savedBotConfig,
+                botConfigSession,
+                bots
+            })
+        )
     } catch (e) {
         return next(e)
     }
@@ -704,7 +763,7 @@ async function runBotConfigAction(req, res, next) {
     try {
         let { action, id } = req.params
         let _userId = req.user._id
-        if (action !== 'start' && action !== 'stop' && action !== 'kill') {
+        if (action !== 'start' && action !== 'stop' && action !== 'pause') {
             return res
                 .status(403)
                 .json(
@@ -727,8 +786,8 @@ async function runBotConfigAction(req, res, next) {
                 return await _startBot(req, res, next, findBotConfig, _userId)
             case 'stop':
                 return await _stopBot(req, res, next, findBotConfig, _userId)
-            case 'kill':
-                return await _killBot(req, res, next, findBotConfig, _userId)
+            case 'pause':
+                return await _pauseBot(req, res, next, findBotConfig, _userId)
         }
     } catch (e) {
         return next(e)
