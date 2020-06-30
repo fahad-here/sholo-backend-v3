@@ -635,13 +635,14 @@ async function editBotConfig(req, res, next) {
             return res
                 .status(404)
                 .json(ResponseMessage(true, 'Bot config not found'))
-        if (findBotConfig.active)
+        if (findBotConfig.active || findBotConfig.currentSession)
             return res
                 .status(403)
                 .json(
                     ResponseMessage(
                         true,
-                        'This configuration is currently active, please disable it before editing it'
+                        'This configuration is currently active/paused, ' +
+                            'please stop it before trying to editing it'
                     )
                 )
         let check = _checkUniqueAccounts(selectedAccounts)
