@@ -903,23 +903,33 @@ async function getAllSessionDetails(req, res, next) {
             return res
                 .status(404)
                 .json(ResponseMessage(true, 'Bot config not found'))
-        const botSessions = await BotConfigSessionSchema.find({
+        let botSessions = await BotConfigSessionSchema.find({
             _botConfigId: botConfig._id,
             _userId
         })
+        botSessions = botSessions.sort(
+            (a, b) => new Date(b.startedAt) - new Date(a.startedAt)
+        )
         const bots = await BotSchema.find({
             _botConfigId: botConfig._id,
-            active: true,
             _userId
         })
         let sessionOrders = []
         let sessionPositions = []
+        let botConfigOrders = []
+        let botConfigPositions = []
         for (let i = 0; i < botSessions.length; i++) {
-            let { orders, positions } = _getBotConfigSessionOrdersAndPositions(
+            let {
+                orders,
+                positions
+            } = await _getBotConfigSessionOrdersAndPositions(
                 botConfig._id,
                 botSessions[i]._id,
                 _userId
             )
+            if (orders) botConfigOrders = [...botConfigOrders, ...orders]
+            if (positions)
+                botConfigPositions = [...botConfigPositions, ...positions]
             sessionOrders.push({
                 [`${botSessions[i]._id}`]: orders
             })
@@ -927,10 +937,18 @@ async function getAllSessionDetails(req, res, next) {
                 [`${botSessions[i]._id}`]: positions
             })
         }
+        botConfigOrders = botConfigOrders.sort(
+            (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+        )
+        botConfigPositions = botConfigPositions.sort(
+            (a, b) => new Date(b.startedAt) - new Date(a.startedAt)
+        )
         return res.json(
             ResponseMessage(false, 'Successful request', {
                 sessionOrders,
                 sessionPositions,
+                botConfigOrders,
+                botConfigPositions,
                 botSessions,
                 bots,
                 botConfig
@@ -972,18 +990,26 @@ async function getCurrentSessionDetails(req, res, next) {
             _botSessionId
         })
 
-        let { orders, positions } = _getBotConfigSessionOrdersAndPositions(
+        let {
+            orders,
+            positions
+        } = await _getBotConfigSessionOrdersAndPositions(
             botConfig._id,
-            botSessions[i]._id,
+            botSession._id,
             _userId
         )
-
+        orders = orders.sort(
+            (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+        )
+        positions = positions.sort(
+            (a, b) => new Date(b.startedAt) - new Date(a.startedAt)
+        )
         return res.json(
             ResponseMessage(false, 'Successful request', {
                 sessionOrders: orders,
                 sessionPositions: positions,
                 botSession,
-                bots,
+                sessionBots: bots,
                 botConfig
             })
         )

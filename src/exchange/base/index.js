@@ -14,7 +14,7 @@ class BaseExchange {
         //TODO: Change this when moving to production
         options = {
             ...options,
-            verbose: true,
+            //verbose: true,
             enableRateLimit: true
         }
         this.exchange = new ccxt[id](options)
@@ -102,6 +102,12 @@ class BaseExchange {
             price,
             params
         )
+    }
+
+    async getOrders(symbol) {
+        if (!this.exchange.has['fetchOrder'])
+            throw new Error('This exchange does not support fetching an order')
+        return await this.exchange.fetchOrders(symbol)
     }
 
     async getOrder(orderId, symbol) {

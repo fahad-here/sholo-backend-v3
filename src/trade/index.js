@@ -76,12 +76,15 @@ class Trade {
         return this.exchange.closeOpenPositions(symbol)
     }
 
-    async getTrades(limit, startTime, endTime, params) {
+    async getTrades(since, limit, params) {
         if (!this.symbol) throw new Error('Please set your exchange pair first')
-        return this.exchange.getTrades(this.symbol, startTime, limit, {
-            ...params,
-            endTime
+        return this.exchange.getTrades(this.symbol, since, limit, {
+            ...params
         })
+    }
+
+    getExchange() {
+        return this.exchange.getExchange()
     }
 }
 

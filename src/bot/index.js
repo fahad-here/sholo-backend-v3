@@ -8,7 +8,8 @@ const {
     BotSchema,
     OrderSchema,
     BotConfigSessionSchema,
-    PositionSchema
+    PositionSchema,
+    BotConfigSchema
 } = DBSchemas
 const { GetPriceTickerKey, Logger, GetWSClass } = require('../../src/utils')
 const Trade = require('../trade')
@@ -473,7 +474,6 @@ class Bot {
     async onPriceRReachedSignal(price, timestamp) {
         Logger.info(`onPriceRReachedSignal`)
         if (!this._position && !this._inProgress) {
-            await this.onBuySellSignal(price, timestamp, true)
             //send email notification
             this._sendSignalToParent('email', `${this._bot._id}`, {
                 account: this._account,
@@ -482,6 +482,7 @@ class Bot {
                 liquidated: false,
                 whatPrice: 'Price R'
             })
+            await this.stopBot()
         }
     }
 
@@ -793,6 +794,13 @@ class Bot {
                 { $set: { active: false } },
                 { new: true }
             )
+            const botConfig = await BotConfigSchema.findById({
+                _id: this._bot._botConfigId
+            })
+            if (!botConfig.currentSession) {
+                if (this._bot.positionOpen)
+                    await this._trader.closeOpenPositions()
+            }
             this._ws.setOrderListener(null)
             this._ws.setPositionListener(null)
             this._ws.exit()
