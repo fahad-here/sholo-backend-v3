@@ -101,13 +101,13 @@ async function getTradesBySessionId(req, res, next) {
                     allOrders[i].symbol,
                     allOrders[i]._orderId
                 )
-                trades = trades.concat(orderTrades)
-                trades.map((trade, index) => {
-                    trades[index] = {
+                orderTrades.map((trade, index) => {
+                    orderTrades[index] = {
                         ...trade,
                         simpleOrderId: allOrders[i].id
                     }
                 })
+                trades = trades.concat(orderTrades)
             }
             trades = trades.sort((a, b) => b - a)
 

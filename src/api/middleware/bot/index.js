@@ -379,7 +379,7 @@ const _calculateStatsAndSetSession = async (
             .toFixed(8)
     }
     return await BotConfigSessionSchema.findByIdAndUpdate(
-        { _id: currentSession },
+        { _id: currentSession._id },
         {
             $set: {
                 stats: {
