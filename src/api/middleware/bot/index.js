@@ -321,6 +321,9 @@ const _calculateStatsAndSetSession = async (
     let totalUnrealisedUsdPnl = 0
     let totalFeesBtcPaid = 0
     let totalFeesUsdPaid = 0
+    currentSession = await BotConfigSessionSchema.findById({
+        _id: currentSession
+    })
     if (currentSession.positionSequence > 1) {
         for (let key of Object.keys(botConfig.startingBalances)) {
             totalInitialBtcBalance = new BigNumber(totalInitialBtcBalance)

@@ -814,7 +814,7 @@ class Bot {
             process.exit()
         } catch (e) {
             Logger.info('Error quitting bot : ' + this._bot._id)
-            Logger.info('Error quitting bot : ', err)
+            Logger.info('Error quitting bot : ', e)
         }
     }
 
