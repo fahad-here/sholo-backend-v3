@@ -78,7 +78,7 @@ const PositionSchema = new mongoose.Schema({
     unrealisedPnl: { type: Number, default: 0 },
     leverage: { type: Number, default: 1, max: 100, min: 1 },
     liquidationStats: { type: Object },
-    liquidated: false,
+    liquidated: { type: Boolean, default: false },
     startedAt: {
         type: Date
     },

@@ -556,7 +556,17 @@ class Bot {
             if (this._position && !this._inProgress) {
                 Logger.info(
                     `position exists and is open and not in progress: `,
-                    this._position
+                    {
+                        id,
+                        pair,
+                        isOpen,
+                        margin,
+                        positionSize,
+                        liquidationPrice,
+                        bankruptPrice,
+                        realisedPnl,
+                        unrealisedPnl
+                    }
                 )
                 if (this._position.margin !== margin) {
                     this._position.margin = margin
@@ -605,20 +615,34 @@ class Bot {
                 )
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
                     type: 'update',
-                    position: this._bot
+                    bot: this._bot
                 })
             } else {
-                Logger.info(
-                    `position does not exist and is open `,
-                    this._position
-                )
+                Logger.info(`position does not exist and is open `, {
+                    id,
+                    pair,
+                    isOpen,
+                    margin,
+                    positionSize,
+                    liquidationPrice,
+                    bankruptPrice,
+                    realisedPnl,
+                    unrealisedPnl
+                })
             }
         } else {
             if (this._position) {
-                Logger.info(
-                    `position exists and is not open {}`,
-                    this._position
-                )
+                Logger.info(`position exists and is not open {}`, {
+                    id,
+                    pair,
+                    isOpen,
+                    margin,
+                    positionSize,
+                    liquidationPrice,
+                    bankruptPrice,
+                    realisedPnl,
+                    unrealisedPnl
+                })
                 changedSet = {
                     ...changedSet,
                     isOpen,
@@ -642,10 +666,17 @@ class Bot {
                     bot: this._bot
                 })
             } else {
-                Logger.info(
-                    `position does not exist and is not open`,
-                    this._position
-                )
+                Logger.info(`position does not exist and is not open`, {
+                    id,
+                    pair,
+                    isOpen,
+                    margin,
+                    positionSize,
+                    liquidationPrice,
+                    bankruptPrice,
+                    realisedPnl,
+                    unrealisedPnl
+                })
             }
         }
 
@@ -797,9 +828,21 @@ class Bot {
             const botConfig = await BotConfigSchema.findById({
                 _id: this._bot._botConfigId
             })
-            if (!botConfig.currentSession) {
-                if (this._bot.positionOpen)
+            if (!botConfig.paused) {
+                Logger.info('current session' + botConfig.currentSession)
+                Logger.info('Bot is paused' + botConfig.paused)
+                if (this._bot.positionOpen) {
+                    Logger.info('Position open ' + this._bot.positionOpen)
+                    Logger.info(`trader info ${this._trader.symbol}`)
+                    Logger.info(`trader info ${this._trader.pair}`)
                     await this._trader.closeOpenPositions()
+                } else {
+                    Logger.info('Position ' + this._bot.positionOpen)
+                }
+            } else {
+                Logger.info(
+                    'Paused, current session' + botConfig.currentSession
+                )
             }
             this._ws.setOrderListener(null)
             this._ws.setPositionListener(null)
@@ -813,8 +856,8 @@ class Bot {
             pubClient.quit()
             process.exit()
         } catch (e) {
-            Logger.info('Error quitting bot : ' + this._bot._id)
-            Logger.info('Error quitting bot : ', e)
+            Logger.error('Error quitting bot : ' + this._bot._id)
+            Logger.error('Error quitting bot : ', e)
         }
     }
 
@@ -851,7 +894,7 @@ class Bot {
                 exchange: bot.exchange,
                 symbol: bot.symbol,
                 _botId: bot._id,
-                _botSessionId: bot.currentSession
+                _botSessionId: bot._botSessionId
             })
         } catch (e) {
             Logger.error(`Error when looking for active position`, e)

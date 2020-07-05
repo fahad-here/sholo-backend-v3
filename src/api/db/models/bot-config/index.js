@@ -40,6 +40,10 @@ const BotConfigSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    paused: {
+        type: Boolean,
+        default: false
+    },
     strategy: {
         type: String,
         required: true,

@@ -1,4 +1,4 @@
-const { SHOLO_STRATEGY, MAP_WS_PAIR_TO_SYMBOL } = require('../../../constants')
+const { SHOLO_STRATEGY } = require('../../../constants')
 const { ResponseMessage, GetExchangeClass } = require('../../../utils')
 const { DBSchemas } = require('../../db/index')
 const {
@@ -253,10 +253,7 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
             // close open positions if any
             // change account status
             // create a bot for s1 and l1
-            await _closeOpenBTCPositions(
-                selectedAccounts[key],
-                MAP_WS_PAIR_TO_SYMBOL[symbol]
-            )
+            await _closeOpenBTCPositions(selectedAccounts[key], symbol)
             const accountDetails = await _changeAccountStatus(
                 selectedAccounts[key],
                 true
@@ -286,6 +283,7 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
             {
                 $set: {
                     active: true,
+                    paused: false,
                     currentSession: botConfigSession._id
                 }
             },
@@ -324,31 +322,68 @@ const _calculateStatsAndSetSession = async (
     currentSession = await BotConfigSessionSchema.findById({
         _id: currentSession
     })
+    let exitChange = {}
+    const exchange = await GetExchangeClass(botConfig.exchange)
+    const currentTickerPrice = (await exchange.getTickerPrice(botConfig.symbol))
+        .last
     if (currentSession.positionSequence > 1) {
         for (let key of Object.keys(botConfig.startingBalances)) {
+            const exitPrice = currentSession.exitPrice
+                ? currentSession.exitPrice[key]
+                    ? currentSession.exitPrice[key]
+                    : currentTickerPrice
+                : currentTickerPrice
+            exitChange = {
+                ...exitChange,
+                [`exitPrice.${key}`]: exitPrice
+            }
             totalInitialBtcBalance = new BigNumber(totalInitialBtcBalance)
                 .plus(botConfig.startingBalances[key])
                 .toFixed(8)
             totalInitialUsdBalance = new BigNumber(totalInitialUsdBalance)
                 .plus(
-                    new BigNumber(totalInitialBtcBalance).multipliedBy(
-                        currentSession.actualEntryPrice
+                    new BigNumber(botConfig.startingBalances[key]).multipliedBy(
+                        currentSession.actualEntryPrice[key]
+                            ? currentSession.actualEntryPrice[key]
+                            : 0
                     )
                 )
                 .toFixed(8)
             let indexOfBot = bots.findIndex((bot) => bot.order === key)
+            let position = await PositionSchema.findOne({
+                isOpen: true,
+                side: key.includes('l') ? 'long' : 'short',
+                _botConfigId: bots[indexOfBot]._botConfigId,
+                _botSessionId: currentSession._id
+            })
             totalEndingBtcBalance = bots[indexOfBot].positionOpen
-                ? new BigNumber(bots[indexOfBot].balance)
-                      .plus(bot[indexOfBot].unrealisedPnl)
+                ? new BigNumber(totalEndingBtcBalance)
+                      .plus(bots[indexOfBot].balance)
+                      .plus(position.margin)
+                      .plus(bots[indexOfBot].unrealisedPnl)
                       .toFixed(8)
-                : bots[indexOfBot].balance
-            totalEndingUsdBalance = new BigNumber(totalEndingBtcBalance)
-                .multipliedBy(currentSession.exitPrice[key])
-                .toFixed(8)
-
+                : new BigNumber(totalEndingBtcBalance)
+                      .plus(bots[indexOfBot].balance)
+                      .toFixed(8)
+            totalEndingUsdBalance = bots[indexOfBot].positionOpen
+                ? new BigNumber(totalEndingUsdBalance)
+                      .plus(
+                          new BigNumber(bots[indexOfBot].balance)
+                              .plus(position.margin)
+                              .plus(bots[indexOfBot].unrealisedPnl)
+                              .multipliedBy(exitPrice)
+                      )
+                      .toFixed(8)
+                : new BigNumber(totalEndingUsdBalance)
+                      .plus(
+                          new BigNumber(bots[indexOfBot].balance).multipliedBy(
+                              exitPrice
+                          )
+                      )
+                      .toFixed(8)
             let currentBotOrders = await OrderSchema.find({
                 _userId,
-                _botId: bots[key]._id,
+                _botId: bots[indexOfBot]._id,
                 _botConfigId: botConfig._id,
                 _botSessionId: currentSession._id
             })
@@ -358,17 +393,14 @@ const _calculateStatsAndSetSession = async (
                     .toFixed(8)
             })
             totalRealisedBtcPnl = new BigNumber(totalRealisedBtcPnl)
-                .plus(bot[indexOfBot].realisedPnl)
+                .plus(bots[indexOfBot].realisedPnl)
+                .plus(bots[indexOfBot].unrealisedPnl)
                 .toFixed(8)
             totalRealisedUsdPnl = new BigNumber(totalRealisedBtcPnl)
-                .multipliedBy(currentSession.exitPrice[key])
+                .multipliedBy(exitPrice)
                 .toFixed(8)
-            totalUnrealisedBtcPnl = new BigNumber(totalUnrealisedBtcPnl)
-                .plus(bot[indexOfBot].unrealisedPnl)
-                .toFixed(8)
-            totalUnrealisedUsdPnl = new BigNumber(totalUnrealisedUsdPnl)
-                .multipliedBy(currentSession.exitPrice[key])
-                .toFixed(8)
+            totalUnrealisedBtcPnl = 0
+            totalUnrealisedUsdPnl = 0
         }
         totalBtcPnl = new BigNumber(totalEndingBtcBalance)
             .minus(totalInitialBtcBalance)
@@ -378,7 +410,7 @@ const _calculateStatsAndSetSession = async (
             .toFixed(8)
         //need to fetch current btc price here and calculate
         totalFeesUsdPaid = new BigNumber(totalFeesBtcPaid)
-            .multipliedBy(currentSession.entryPrice)
+            .multipliedBy(currentTickerPrice)
             .toFixed(8)
     }
     return await BotConfigSessionSchema.findByIdAndUpdate(
@@ -400,7 +432,8 @@ const _calculateStatsAndSetSession = async (
                     totalUnrealisedUsdPnl
                 },
                 active: false,
-                endedAt: Date.now()
+                endedAt: Date.now(),
+                ...exitChange
             }
         }
     )
@@ -408,8 +441,8 @@ const _calculateStatsAndSetSession = async (
 
 const _stopBot = async (req, res, next, botConfig, _userId) => {
     try {
-        let { selectedAccounts, active, currentSession } = botConfig
-        if (!active)
+        let { selectedAccounts, active, currentSession, paused } = botConfig
+        if (!active || paused)
             return res
                 .status(500)
                 .json(
@@ -468,14 +501,15 @@ const _stopBot = async (req, res, next, botConfig, _userId) => {
             })
         )
     } catch (e) {
+        console.log(e)
         return next(e)
     }
 }
 
 const _pauseBot = async (req, res, next, botConfig, _userId) => {
     try {
-        let { selectedAccounts, active, currentSession } = botConfig
-        if (!active)
+        let { selectedAccounts, active, currentSession, paused } = botConfig
+        if (!active || paused)
             return res
                 .status(500)
                 .json(
@@ -508,14 +542,16 @@ const _pauseBot = async (req, res, next, botConfig, _userId) => {
                 $set: {
                     active: false
                 }
-            }
+            },
+            { new: true }
         )
         //update the bot config with the session = null
         const savedBotConfig = await BotConfigSchema.findByIdAndUpdate(
             { _id: botConfig._id },
             {
                 $set: {
-                    active: false
+                    active: false,
+                    paused: true
                 }
             },
             { new: true }
@@ -638,7 +674,7 @@ async function editBotConfig(req, res, next) {
             return res
                 .status(404)
                 .json(ResponseMessage(true, 'Bot config not found'))
-        if (findBotConfig.active || findBotConfig.currentSession)
+        if (findBotConfig.active || findBotConfig.paused)
             return res
                 .status(403)
                 .json(

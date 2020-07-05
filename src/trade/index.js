@@ -71,9 +71,9 @@ class Trade {
     }
 
     async closeOpenPositions() {
-        const symbol = this.symbol
-        if (!symbol) throw new Error('Please set your exchange pair first')
-        return this.exchange.closeOpenPositions(symbol)
+        const pair = this.pair
+        if (!pair) throw new Error('Please set your exchange pair first')
+        return this.exchange.closeOpenPositions(pair)
     }
 
     async getTrades(since, limit, params) {

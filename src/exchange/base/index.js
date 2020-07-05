@@ -139,6 +139,14 @@ class BaseExchange {
             throw new Error('This exchange does not support getting trades')
         return await this.exchange.fetchMyTrades(symbol, since, limit, params)
     }
+
+    async getTickerPrice(symbol) {
+        if (!this.exchange.hasFetchTicker)
+            throw new Error(
+                'This exchange does not support getting ticker price'
+            )
+        return await this.exchange.fetchTicker(symbol)
+    }
 }
 
 module.exports = BaseExchange
