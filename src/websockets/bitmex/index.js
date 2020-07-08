@@ -3,7 +3,7 @@ const BaseWS = require('../base')
 const { BITMEX_EXCHANGE } = require('../../constants')
 const BigNumber = require('bignumber.js')
 class BitmexWS extends BaseWS {
-    constructor(pair, options = { testnet: true }) {
+    constructor(pair, options) {
         super(BITMEX_EXCHANGE, options, new BitMEXClient(options), pair)
     }
 

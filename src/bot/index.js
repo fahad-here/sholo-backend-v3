@@ -248,9 +248,11 @@ class Bot {
                     _orderId: orderDetails.id,
                     timestamp: orderDetails.datetime,
                     side,
-                    price,
+                    price: orderDetails.average,
                     amount,
-                    cost: margin,
+                    cost: new BigNumber(orderDetails.cost)
+                        .dividedBy(1000000000)
+                        .toFixed(8),
                     status: orderDetails.info.ordStatus,
                     fees,
                     botOrder,
@@ -261,7 +263,7 @@ class Bot {
                     type: feeType,
                     symbol: symbol,
                     pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
-                    isExit: false,
+                    isExit: positionOpen,
                     leverage: leverage,
                     orderSequence: botSession.orderSequence
                 }).save()
@@ -289,7 +291,7 @@ class Bot {
                                               .dividedBy(leverage)
                                       )
                                       .toFixed(8),
-                            priceP: price,
+                            priceP: orderDetails.average,
                             liquidationPrice: liquidation,
                             positionOpen: isBuy,
                             _previousOrderId: order._id
@@ -331,7 +333,7 @@ class Bot {
                         side: botOrder.includes('l')
                             ? POSITION_LONG
                             : POSITION_SHORT,
-                        entryPrice: price,
+                        entryPrice: orderDetails.average,
                         symbol,
                         pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
                         exchange,
@@ -351,7 +353,7 @@ class Bot {
                 } else {
                     Logger.info(`is sell, setting position details`)
                     const changedSet = {
-                        exitPrice: price,
+                        exitPrice: orderDetails.average,
                         endedAt: timestamp,
                         _sellOrderId: order._id,
                         _sellOrderIdSimple: order.id
@@ -388,9 +390,11 @@ class Bot {
                     : { orderSequence: 1 }
                 const updateValue = isBuy
                     ? botSession.positionSequence === 1
-                        ? { [`actualEntryPrice.${this._bot.order}`]: price }
+                        ? {
+                              [`actualEntryPrice.${this._bot.order}`]: orderDetails.average
+                          }
                         : {}
-                    : { [`exitPrice.${this._bot.order}`]: price }
+                    : { [`exitPrice.${this._bot.order}`]: orderDetails.average }
                 const session = await BotConfigSessionSchema.findByIdAndUpdate(
                     { _id: _botSessionId },
                     { $inc: updateSequence, $set: updateValue },
@@ -414,6 +418,11 @@ class Bot {
     }
 
     async onBuySignal(price, timestamp) {
+        Logger.info(
+            `inside buy signal ${
+                this._position ? this._position.isOpen : null
+            } ${this._inProgress}`
+        )
         if (!this._position && !this._inProgress) {
             Logger.info(`on buy signal`)
             await this.onBuySellSignal(price, timestamp, true)
@@ -428,6 +437,11 @@ class Bot {
     }
 
     async onSellSignal(price, timestamp) {
+        Logger.info(
+            `inside sell signal ${
+                this._position ? this._position.isOpen : null
+            } ${this._inProgress}`
+        )
         if (!this._position) Logger.error(`No current position`)
         if (this._position.isOpen && !this._inProgress)
             Logger.error('Current position is not open')
@@ -829,12 +843,33 @@ class Bot {
                 _id: this._bot._botConfigId
             })
             if (!botConfig.paused) {
+                this._inProgress = true
                 Logger.info('current session' + botConfig.currentSession)
                 Logger.info('Bot is paused' + botConfig.paused)
                 if (this._bot.positionOpen) {
                     Logger.info('Position open ' + this._bot.positionOpen)
                     Logger.info(`trader info ${this._trader.symbol}`)
                     Logger.info(`trader info ${this._trader.pair}`)
+                    const currentPrice = await this._trader
+                        .getExchange()
+                        .getTickerPrice(this._trader.symbol)
+                    await PositionSchema.findByIdAndUpdate(
+                        { _id: this._position._id },
+                        {
+                            $set: {
+                                [`exitPrice.${this._bot.order}`]: currentPrice,
+                                isOpen: false
+                            }
+                        }
+                    )
+                    await BotSchema.findByIdAndUpdate(
+                        { _id: this._bot.id },
+                        {
+                            $set: {
+                                positionOpen: false
+                            }
+                        }
+                    )
                     await this._trader.closeOpenPositions()
                 } else {
                     Logger.info('Position ' + this._bot.positionOpen)

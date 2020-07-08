@@ -8,8 +8,8 @@ class Sholo extends Strategy {
         onSellSignal,
         onLiquidatedSignal,
         onPriceRReachedSignal,
-        lowThreshold = 5,
-        highThreshold = 5
+        lowThreshold = 10,
+        highThreshold = 10
     ) {
         super(onBuySignal, onSellSignal, onLiquidatedSignal)
         this.onPriceRReachedSignal = onPriceRReachedSignal

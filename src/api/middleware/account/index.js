@@ -48,7 +48,7 @@ async function createNewAccount(req, res, next) {
                 balance,
                 testNet
             }).save()
-            const { _id } = createRes
+            const { _id, inUse } = createRes
             return createRes
                 ? res.json(
                       ResponseMessage(false, 'Created Account', {
@@ -60,7 +60,8 @@ async function createNewAccount(req, res, next) {
                               apiSecret,
                               _userId,
                               testNet,
-                              balance
+                              balance,
+                              inUse
                           }
                       })
                   )
