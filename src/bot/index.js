@@ -116,20 +116,21 @@ class Bot {
                     .multipliedBy(leverage)
                     .multipliedBy(LIMIT_FEES)
                     .toFixed(8)
-                return fees
+                break
             case FEE_TYPE_TAKER:
                 fees = new BigNumber(difference)
                     .multipliedBy(leverage)
                     .multipliedBy(MARKET_FEES)
                     .toFixed(8)
-                return fees
+                break
             default:
                 fees = new BigNumber(difference)
                     .multipliedBy(leverage)
                     .multipliedBy(MARKET_FEES)
                     .toFixed(8)
-                return fees
+                break
         }
+        return { fees, difference }
     }
 
     async _calculateAmount(currentUsdPrice) {
@@ -230,7 +231,9 @@ class Bot {
                     amount
                 )
                 Logger.info(`post order`)
-                const fees = await this._calculateFees(preOrderBalance)
+                const { fees, difference } = await this._calculateFees(
+                    preOrderBalance
+                )
                 Logger.info(`fees ${fees}`)
                 const botSession = await BotConfigSessionSchema.findById({
                     _id: _botSessionId
@@ -278,18 +281,10 @@ class Bot {
                         $set: {
                             balance: isBuy
                                 ? new BigNumber(this._bot.balance)
-                                      .minus(
-                                          new BigNumber(orderDetails.amount)
-                                              .dividedBy(orderDetails.average)
-                                              .dividedBy(leverage)
-                                      )
+                                      .minus(difference)
                                       .toFixed(8)
                                 : new BigNumber(this._bot.balance)
-                                      .plus(
-                                          new BigNumber(orderDetails.amount)
-                                              .dividedBy(orderDetails.average)
-                                              .dividedBy(leverage)
-                                      )
+                                      .plus(difference)
                                       .toFixed(8),
                             priceP: orderDetails.average,
                             liquidationPrice: liquidation,
