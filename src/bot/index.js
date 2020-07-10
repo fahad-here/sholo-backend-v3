@@ -11,7 +11,11 @@ const {
     PositionSchema,
     BotConfigSchema
 } = DBSchemas
-const { GetPriceTickerKey, Logger, GetWSClass } = require('../../src/utils')
+const {
+    GetPriceTickerKey,
+    GetWSClass,
+    ChildLogger
+} = require('../../src/utils')
 const Trade = require('../trade')
 const { Bitmex } = require('../exchange')
 const redis = require('redis')
@@ -32,6 +36,7 @@ const {
 const priceSubscriptionClient = redis.createClient()
 const botClient = redis.createClient()
 const pubClient = redis.createClient()
+let Logger
 
 class Bot {
     constructor(bot) {
@@ -254,7 +259,7 @@ class Bot {
                     price: orderDetails.average,
                     amount,
                     cost: new BigNumber(orderDetails.cost)
-                        .dividedBy(1000000000)
+                        .dividedBy(100000000)
                         .toFixed(8),
                     status: orderDetails.info.ordStatus,
                     fees,
@@ -437,8 +442,9 @@ class Bot {
                 this._position ? this._position.isOpen : null
             } ${this._inProgress}`
         )
-        if (!this._position) Logger.error(`No current position`)
-        if (this._position.isOpen && !this._inProgress)
+        if (!this._position) {
+            Logger.error(`No current position`)
+        } else if (this._position.isOpen && !this._inProgress)
             Logger.error('Current position is not open')
         if (this._position && !this._inProgress) {
             Logger.info(`on sell signal`)
@@ -957,6 +963,7 @@ class Bot {
 }
 
 async function main() {
+    Logger = ChildLogger('bots', JSON.parse(process.argv[3])._id)
     Logger.info(`pid ${process.pid}`)
     Logger.info(`bot order ${JSON.parse(process.argv[3]).order}`)
     const bot = new Bot(process.argv[3])

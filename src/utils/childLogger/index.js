@@ -9,8 +9,6 @@ const logDir = '.logs'
 // Create the log directory if it does not exist
 if (!fs.existsSync(logDir)) fs.mkdirSync(logDir)
 
-const filename = path.join(logDir, 'output.log')
-
 const printFFormatter = ({ timestamp, level, message, ...rest }) => {
     let restString = JSON.stringify(rest, undefined, 4)
     restString = restString === '{}' ? '' : restString
@@ -27,20 +25,21 @@ const devFormat = combine(
     })
 )
 
-const Logger = createLogger({
-    // change level if in dev environment versus production
-    level: env === 'production' ? 'info' : 'debug',
-    format: devFormat,
-    transports: [
-        new transports.Console({
-            format: combine(colorize(), printf(printFFormatter))
-        }),
-        new transports.File({
-            filename,
-            maxsize: 2560000,
-            format: combine(printf(printFFormatter))
-        })
-    ]
-})
-
-module.exports = Logger
+module.exports = (filePath, fileName) => {
+    const filename = path.join(logDir, filePath, `${fileName}.log`)
+    return createLogger({
+        // change level if in dev environment versus production
+        level: env === 'production' ? 'info' : 'debug',
+        format: devFormat,
+        transports: [
+            new transports.Console({
+                format: combine(colorize(), printf(printFFormatter))
+            }),
+            new transports.File({
+                filename,
+                maxsize: 2560000,
+                format: combine(printf(printFFormatter))
+            })
+        ]
+    })
+}

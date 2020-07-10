@@ -1,5 +1,6 @@
 const moment = require('moment')
 const Logger = require('./logger')
+const ChildLogger = require('./childLogger')
 const ResponseMessage = require('./getResponseMessage')
 const RouteErrorHandler = require('./errorHandler')
 const Validation = require('./validation')
@@ -24,5 +25,6 @@ module.exports = {
     GetPriceTickerKey,
     GetOrderBook10TickerKey,
     GetExchangeClass,
-    GetWSClass
+    GetWSClass,
+    ChildLogger
 }

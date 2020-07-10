@@ -60,7 +60,7 @@ class BotCoordinator {
             [parentBotsDir, JSON.stringify(bot)],
             {
                 detached: true,
-                stdio: ['ignore', out, err, 'ipc']
+                stdio: ['ignore', 'ignore', 'ignore', 'ipc']
             }
         )
         this.bots[bot._id].on('message', async ({ command, args }) => {
