@@ -8,6 +8,14 @@ const PublishData = () => {
     publishBitmex.initialize()
     const publishBinance = new Publish(BINANCE_EXCHANGE, 'BTCUSDT')
     publishBinance.initialize()
+    const publishTestNetBitmex = new Publish(BITMEX_EXCHANGE, 'XBTUSD', {
+        testnet: true
+    })
+    publishTestNetBitmex.initialize()
+    const publishTestNetBinance = new Publish(BINANCE_EXCHANGE, 'BTCUSDT', {
+        testnet: true
+    })
+    publishTestNetBinance.initialize()
 }
 
 module.exports = {

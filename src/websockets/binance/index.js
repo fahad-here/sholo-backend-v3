@@ -4,7 +4,7 @@ const { BINANCE_EXCHANGE } = require('../../constants')
 const moment = require('moment')
 
 class BinanceWS extends BaseWS {
-    constructor(pair, options = { testnet: true }) {
+    constructor(pair, options) {
         super(BINANCE_EXCHANGE, options, new BinanceAPI.BinanceWS(true), pair)
     }
 
@@ -15,7 +15,8 @@ class BinanceWS extends BaseWS {
                     this.id,
                     this.pair,
                     data.currentClose,
-                    moment(data.eventTime).toISOString()
+                    moment(data.eventTime).toISOString(),
+                    this.options.testnet
                 )
         })
     }

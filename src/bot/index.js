@@ -13,6 +13,7 @@ const {
 } = DBSchemas
 const {
     GetPriceTickerKey,
+    GetTestNetPriceTickerKey,
     GetWSClass,
     ChildLogger
 } = require('../../src/utils')
@@ -771,15 +772,18 @@ class Bot {
         this._ws.addOrderTicker()
         this._ws.addPositionTicker()
         priceSubscriptionClient.subscribe(
-            GetPriceTickerKey(exchange, pair),
+            bot.testNet
+                ? GetTestNetPriceTickerKey(exchange, pair)
+                : GetPriceTickerKey(exchange, pair),
             (err, count) => {
                 Logger.info(
                     `Child process ${
                         bot._id
-                    } Subscribed to ${count} channel. Listening for updates on the ${GetPriceTickerKey(
-                        exchange,
-                        pair
-                    )} channel. pid: ${process.pid}`
+                    } Subscribed to ${count} channel. Listening for updates on the ${
+                        bot.testNet
+                            ? GetTestNetPriceTickerKey(exchange, pair)
+                            : GetPriceTickerKey(exchange, pair)
+                    } channel. pid: ${process.pid}`
                 )
             }
         )

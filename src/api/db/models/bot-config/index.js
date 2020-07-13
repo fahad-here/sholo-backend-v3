@@ -49,6 +49,10 @@ const BotConfigSchema = new mongoose.Schema({
         required: true,
         enum: [...ALLOWED_STRATEGIES]
     },
+    testNet: {
+        type: Boolean,
+        default: true
+    },
     createdAt: {
         type: Date,
         required: true,

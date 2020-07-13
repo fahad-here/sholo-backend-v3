@@ -93,6 +93,10 @@ const BotSchema = new mongoose.Schema({
     endedAt: {
         type: Date
     },
+    testNet: {
+        type: Boolean,
+        default: true
+    },
     createdAt: {
         type: Date,
         required: true,

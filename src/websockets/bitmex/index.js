@@ -15,7 +15,8 @@ class BitmexWS extends BaseWS {
                     this.id,
                     this.pair,
                     priceChangeData.lastPrice,
-                    priceChangeData.timestamp
+                    priceChangeData.timestamp,
+                    this.options.testnet
                 )
         })
     }

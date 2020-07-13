@@ -65,6 +65,10 @@ const BotConfigSessionSchema = new mongoose.Schema({
         required: true,
         default: Date.now
     },
+    testNet: {
+        type: Boolean,
+        default: true
+    },
     stats: {
         totalInitialBtcBalance: { type: String },
         totalInitialUsdBalance: { type: String },
