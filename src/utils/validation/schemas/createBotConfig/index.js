@@ -20,5 +20,6 @@ module.exports = Joi.object().keys({
     priceR: Joi.number().min(1).required(),
     leverage: Joi.number().min(1).required(),
     feeType: Joi.string().valid('maker', 'taker').required(),
-    marketThreshold: Joi.number().min(1)
+    marketThreshold: Joi.number().min(1),
+    testNet: Joi.boolean().required()
 })
