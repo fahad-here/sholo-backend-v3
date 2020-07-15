@@ -979,7 +979,10 @@ async function main() {
             case 'stop':
                 Logger.info(
                     'Received data from parent process on child process ',
-                    { command, args }
+                    {
+                        command,
+                        args
+                    }
                 )
                 await bot.stopBot()
                 break

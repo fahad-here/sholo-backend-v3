@@ -78,6 +78,7 @@ class Simulator {
                 this.exchange = new Binance(exchangeParams)
                 break
         }
+        console.log('inside simulator')
         this.exchangeParams = exchangeParams
         this.symbol = symbol
         this.timeFrame = timeFrame
@@ -170,6 +171,7 @@ class Simulator {
 
     async _fetchCandles() {
         const fetchOHLCV = new FetchOHLCV(this.exchange)
+        console.log('inside fetch')
         this.candles = await fetchOHLCV.getCandles(
             this.symbol,
             this.timeFrame,
@@ -177,6 +179,7 @@ class Simulator {
             this.toDateTime,
             this.exchangeParams
         )
+        console.log('post fetchs')
     }
 
     async simulate() {

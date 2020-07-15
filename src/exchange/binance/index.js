@@ -73,7 +73,9 @@ class Binance extends BaseExchange {
 
     async closeOpenPositions(symbol) {
         const allCurrentPositions = await this.exchange.fapiPrivateGetPositionRisk(
-            { symbol }
+            {
+                symbol
+            }
         )
         //get current symbol position
         const relevantPosition = allCurrentPositions.filter(

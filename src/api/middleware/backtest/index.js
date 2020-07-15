@@ -30,7 +30,9 @@ async function addNewBackTest(req, res, next) {
             ResponseMessage(
                 false,
                 'Successfully added back test configuration',
-                { backTestConfig }
+                {
+                    backTestConfig
+                }
             )
         )
     } catch (e) {
