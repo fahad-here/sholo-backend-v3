@@ -97,6 +97,8 @@ const BotSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    name: { type: String, required: true },
+    archived: { type: Boolean, default: false },
     createdAt: {
         type: Date,
         required: true,

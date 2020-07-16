@@ -36,6 +36,8 @@ const BotConfigSchema = new mongoose.Schema({
         type: Number
     },
     feeType: { type: String, required: true, enum: ['maker', 'taker'] },
+    name: { type: String, required: true },
+    archived: { type: Boolean, default: false },
     active: {
         type: Boolean,
         default: false
