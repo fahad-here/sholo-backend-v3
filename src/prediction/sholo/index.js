@@ -15,11 +15,7 @@ class SholoPrediction extends Simulator {
         fromDateTime,
         toDateTime,
         minDifference = 10,
-        entryPrice = 10000,
-        priceA = 200,
-        priceB = 100,
-        priceR = 300,
-        leverage = 1,
+        leverage = 2,
         feeType = 'taker'
     ) {
         super(
@@ -31,7 +27,10 @@ class SholoPrediction extends Simulator {
             toDateTime
         )
         this.minDifference = minDifference
-        this.startingBalances = { [BOT_SHORT_1]: 1, [BOT_LONG_1]: 1 }
+        this.initialStartingBalances = { [BOT_SHORT_1]: 1, [BOT_LONG_1]: 1 }
+        this.leverage = leverage
+        this.feeType = feeType
+        this.priceChange = 20
         //this.setBotParams(startingBalances, entryPrice, priceA, priceB, priceR, leverage, feeType)
         //const { bots, stats, notify } = await this.simulate()
     }
@@ -81,6 +80,30 @@ class SholoPrediction extends Simulator {
                         `and the lowest value was ${low}`
                 )
             }
+            this.initialEntryPrice = sma[0][0]
+            let priceA = this.priceChange
+            let priceB = this.priceChange
+            let priceR = this.priceChange * 2
+            let simResults = []
+            do {
+                this.setBotParams(
+                    this.initialStartingBalances,
+                    this.initialEntryPrice,
+                    priceA,
+                    priceB,
+                    priceR,
+                    this.leverage,
+                    false
+                )
+                this._initializeAccounts()
+                const { stats, bots, notify } = this._simulate()
+                let result = { stats, bots, notify }
+                simResults.push(result)
+                priceA += 5
+                priceB += 5
+                priceR = priceA * 2
+            } while (this.priceA > high || this.priceB > high)
+            return simResults
         } catch (err) {
             throw err
         }

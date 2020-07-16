@@ -38,9 +38,10 @@ async function runTestOnTimeFrame(req, res, next) {
             new Date(fromDateTime),
             new Date(toDateTime)
         )
-        await sholoPrediction.run()
+        let results = await sholoPrediction.run()
         return res.json({
-            message: `Test successfully`
+            message: `Test successfully`,
+            results
         })
     } catch (e) {
         return next(e)
