@@ -1071,6 +1071,89 @@ async function getCurrentSessionDetails(req, res, next) {
     }
 }
 
+async function archiveBotConfig(req, res, next) {
+    try {
+        const _id = req.params.id
+        let botConfig = await BotConfigSchema.findById({ _id })
+        if (!botConfig)
+            return res
+                .status(404)
+                .json(ResponseMessage(true, 'Bot config not found'))
+        if (botConfig.paused)
+            return res
+                .status(401)
+                .json(
+                    ResponseMessage(
+                        true,
+                        'Bot config is currently paused, please stop it before archiving'
+                    )
+                )
+        if (botConfig.active)
+            return res
+                .status(401)
+                .json(
+                    ResponseMessage(
+                        true,
+                        'Bot config is currently active, please stop it before archiving'
+                    )
+                )
+        let bots = await BotSchema.find({
+            _botConfigId: _id,
+            _userId: req.user._id
+        })
+        let enabled = false
+        let active = false
+        let positionOpen = false
+        if (bots) {
+            bots.map((bot) => {
+                if (bot.enabled) enabled = true
+                if (bot.active) active = true
+                if (bot.positionOpen) positionOpen = true
+            })
+        }
+        if (enabled || active)
+            return res
+                .status(401)
+                .json(
+                    ResponseMessage(
+                        true,
+                        'One or more bots under this config is active/enabled, please stop it before archiving'
+                    )
+                )
+        if (positionOpen)
+            return res
+                .status(401)
+                .json(
+                    ResponseMessage(
+                        true,
+                        'One or more bots has an open position, please close it before archiving'
+                    )
+                )
+        botConfig = await BotConfigSchema.findByIdAndUpdate(
+            { _id: botConfig._id },
+            { $set: { archived: true } },
+            { new: true }
+        )
+        let updatedBots = []
+        bots.map(async (bot) => {
+            let update = await BotSchema.findByIdAndUpdate(
+                { _id: bot._id },
+                { $set: { archived: true } },
+                { new: true }
+            )
+            updatedBots.push(update)
+        })
+        return res.json(
+            ResponseMessage(false, 'Successful Request', {
+                botConfig,
+                bots: updatedBots
+            })
+        )
+    } catch (err) {
+        return next(err)
+    }
+}
+
 module.exports = {
     createBotConfig,
     editBotConfig,
