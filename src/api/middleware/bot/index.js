@@ -1079,6 +1079,10 @@ async function archiveBotConfig(req, res, next) {
             return res
                 .status(404)
                 .json(ResponseMessage(true, 'Bot config not found'))
+        if (botConfig.archived)
+            return res
+                .status(401)
+                .json(ResponseMessage(true, 'Bot config is already archived.'))
         if (botConfig.paused)
             return res
                 .status(401)
