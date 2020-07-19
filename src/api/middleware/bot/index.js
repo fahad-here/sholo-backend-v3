@@ -1182,5 +1182,6 @@ module.exports = {
     getAllOrders,
     getAllPositions,
     getAllSessionDetails,
-    getCurrentSessionDetails
+    getCurrentSessionDetails,
+    archiveBotConfig
 }

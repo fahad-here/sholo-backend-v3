@@ -37,6 +37,12 @@ botsController.post(
 )
 
 botsController.post(
+    '/archive/:id',
+    AuthMiddleware.requireJWT,
+    BotMiddleware.archiveBotConfig
+)
+
+botsController.post(
     '/:id/:action',
     AuthMiddleware.requireJWT,
     BotMiddleware.runBotConfigAction
