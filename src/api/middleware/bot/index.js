@@ -192,7 +192,11 @@ const _createBot = async (
 }
 
 const _changeAccountStatus = async (accountId, inUse) =>
-    await AccountSchema.findByIdAndUpdate({ _id: accountId }, { inUse })
+    await AccountSchema.findByIdAndUpdate(
+        { _id: accountId },
+        { $set: { inUse } },
+        { new: true }
+    )
 
 const _startBot = async (req, res, next, botConfig, _userId) => {
     try {
@@ -835,6 +839,10 @@ async function runBotConfigAction(req, res, next) {
             return res
                 .status(404)
                 .json(ResponseMessage(true, 'Bot configuration not found.'))
+        if (findBotConfig.archived)
+            return res
+                .status(401)
+                .json(ResponseMessage(true, 'Bot configuration is archied.'))
         switch (action) {
             case 'start':
                 return await _startBot(req, res, next, findBotConfig, _userId)
@@ -1139,6 +1147,7 @@ async function archiveBotConfig(req, res, next) {
             { new: true }
         )
         let updatedBots = []
+        let accounts = []
         bots.map(async (bot) => {
             let update = await BotSchema.findByIdAndUpdate(
                 { _id: bot._id },
@@ -1146,11 +1155,15 @@ async function archiveBotConfig(req, res, next) {
                 { new: true }
             )
             updatedBots.push(update)
+
+            let account = await _changeAccountStatus(bot._accountId, false)
+            accounts.push(account)
         })
         return res.json(
             ResponseMessage(false, 'Successful Request', {
                 botConfig,
-                bots: updatedBots
+                bots: updatedBots,
+                accounts
             })
         )
     } catch (err) {
