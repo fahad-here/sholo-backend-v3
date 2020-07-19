@@ -18,6 +18,7 @@ module.exports = Joi.object().keys({
     priceA: Joi.number().min(1).required(),
     priceB: Joi.number().min(1).required(),
     priceR: Joi.number().min(1).required(),
+    name: Joi.string().required(),
     leverage: Joi.number().min(1).required(),
     feeType: Joi.string().valid('maker', 'taker').required(),
     marketThreshold: Joi.number().min(1),
