@@ -105,14 +105,16 @@ class Bot {
         } else return true
     }
 
-    async _calculateFees(preOrderBalance) {
+    async _calculateFees(preOrderBalance, isMarket) {
         Logger.info('calculating fees')
         const postOrderBalance = await this._trader.getBalance()
         const difference = this._bot.positionOpen
             ? postOrderBalance.free[BTC] - preOrderBalance.free[BTC]
             : preOrderBalance.free[BTC] - postOrderBalance.free[BTC]
         Logger.info(`fees difference: ${difference}`)
-        const feePercent = FEES[this._bot.feeType]
+        const feePercent = isMarket
+            ? FEES[FEE_TYPE_TAKER]
+            : FEES[FEE_TYPE_MAKER]
         Logger.info(`fees type: ${feePercent}`)
         const leverage = this._bot.leverage
         let fees
@@ -242,7 +244,8 @@ class Bot {
                 )
                 Logger.info(`post order`)
                 const { fees, difference } = await this._calculateFees(
-                    preOrderBalance
+                    preOrderBalance,
+                    isMarket
                 )
                 Logger.info(`fees ${fees}`)
                 const botSession = await BotConfigSessionSchema.findById({
