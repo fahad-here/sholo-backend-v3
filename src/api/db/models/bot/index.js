@@ -77,6 +77,10 @@ const BotSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    orderOpen: {
+        type: Boolean,
+        default: false
+    },
     strategy: {
         type: String,
         required: true,

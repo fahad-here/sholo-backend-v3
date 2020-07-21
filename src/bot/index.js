@@ -189,7 +189,7 @@ class Bot {
         })
     }
 
-    async onBuySellSignal(price, timestamp, isBuy) {
+    async onBuySellSignal(price, timestamp, isBuy, isMarket) {
         this._inProgress = true
         Logger.info(`in progress: ${this._inProgress}`)
         try {
@@ -206,7 +206,8 @@ class Bot {
                 leverage,
                 order: botOrder,
                 id: _botIdSimple,
-                positionOpen
+                positionOpen,
+                orderOpen
             } = this._bot
             const { _id, accountType } = this._account
             const side =
@@ -224,7 +225,9 @@ class Bot {
             Logger.info(`${this._bot._id} ${side}`)
             Logger.info(`amount : ${amount}`)
             Logger.info(`margin ${margin}`)
-            const liquidityCheck = await this._checkLiquidity(amount, price)
+            const liquidityCheck = isMarket
+                ? await this._checkLiquidity(amount, price)
+                : true
             if (liquidityCheck) {
                 const { liquidation } = Bitmex._calculateLiquidation(
                     amount,
@@ -232,9 +235,10 @@ class Bot {
                     leverage,
                     botOrder.includes('l') ? POSITION_LONG : POSITION_SHORT
                 )
-                const orderDetails = await this._trader.createMarketOrder(
+                const orderDetails = await this._trader.createLimitOrder(
                     side,
-                    amount
+                    amount,
+                    price
                 )
                 Logger.info(`post order`)
                 const { fees, difference } = await this._calculateFees(
@@ -295,7 +299,8 @@ class Bot {
                             priceP: orderDetails.average,
                             liquidationPrice: liquidation,
                             positionOpen: isBuy,
-                            _previousOrderId: order._id
+                            _previousOrderId: order._id,
+                            orderOpen: order.remaining !== 0
                         }
                     },
                     { new: true }
@@ -330,7 +335,7 @@ class Bot {
                         _botSessionIdSimple,
                         _buyOrderId: order._id,
                         _buyOrderIdSimple: order.id,
-                        isOpen: true,
+                        isOpen: isMarket,
                         side: botOrder.includes('l')
                             ? POSITION_LONG
                             : POSITION_SHORT,
@@ -418,7 +423,7 @@ class Bot {
         }
     }
 
-    async onBuySignal(price, timestamp) {
+    async onBuySignal(price, timestamp, isMarket) {
         Logger.info(
             `inside buy signal ${
                 this._position ? this._position.isOpen : null
@@ -426,7 +431,7 @@ class Bot {
         )
         if (!this._position && !this._inProgress) {
             Logger.info(`on buy signal`)
-            await this.onBuySellSignal(price, timestamp, true)
+            await this.onBuySellSignal(price, timestamp, true, isMarket)
             // save this order in db
             // create a position
             // subscribe to ws updates on the position
@@ -437,7 +442,7 @@ class Bot {
         }
     }
 
-    async onSellSignal(price, timestamp) {
+    async onSellSignal(price, timestamp, isMarket) {
         Logger.info(
             `inside sell signal ${
                 this._position ? this._position.isOpen : null
@@ -447,9 +452,9 @@ class Bot {
             Logger.error(`No current position`)
         } else if (this._position.isOpen && !this._inProgress)
             Logger.error('Current position is not open')
-        if (this._position && !this._inProgress) {
+        if (this._position && this._position.isOpen && !this._inProgress) {
             Logger.info(`on sell signal`)
-            await this.onBuySellSignal(price, timestamp, false)
+            await this.onBuySellSignal(price, timestamp, false, isMarket)
         }
     }
 
@@ -541,8 +546,22 @@ class Bot {
                         filledQuantity,
                         remainQuantity
                     }
-                }
+                },
+                { new: true }
             )
+            if (status === 'Filled' || remainQuantity === 0) {
+                this._bot = await BotSchema.findByIdAndUpdate(
+                    { _id: this._bot._id },
+                    {
+                        orderOpen: false
+                    },
+                    { new: true }
+                )
+                this._sendSignalToParent('socket', `${this._bot._id}`, {
+                    type: 'update',
+                    bot: this._bot
+                })
+            }
             this._sendSignalToParent('socket', `${this._bot._id}`, {
                 type: 'order',
                 order
