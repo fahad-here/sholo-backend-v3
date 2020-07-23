@@ -6,7 +6,6 @@ const {
 } = require('../../../../constants')
 const AutoIncrement = require('mongoose-sequence')(mongoose)
 
-
 const BotConfigSessionSchema = new mongoose.Schema({
     _userId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -89,7 +88,7 @@ const BotConfigSessionSchema = new mongoose.Schema({
         type: String,
         enum: [...ALLOWED_MARGIN_TYPES]
     },
-    name:{
+    name: {
         type: String,
         required: true
     }

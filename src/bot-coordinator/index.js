@@ -53,8 +53,8 @@ class BotCoordinator {
         Logger.info(`start bot  ${bot.order}, botID : ${bot._id}`)
         const connection = SocketIOConnection.connection()
 
-        const out = fs.openSync(`${parentBotLogDir}\\out_${bot._id}.log`, 'a')
-        const err = fs.openSync(`${parentBotLogDir}\\err_${bot._id}.log`, 'a')
+        // const out = fs.openSync(`${parentBotLogDir}\\out_${bot._id}.log`, 'a')
+        // const err = fs.openSync(`${parentBotLogDir}\\err_${bot._id}.log`, 'a')
         this.bots[bot._id] = fork(
             parentBotsDir,
             [parentBotsDir, JSON.stringify(bot)],

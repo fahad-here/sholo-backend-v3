@@ -144,7 +144,7 @@ const _createBot = async (
                     priceR,
                     priceP: entryPrice,
                     entryPrice,
-                    positionOpen: false,
+                    positionOpen: existingBot.positionOpen,
                     leverage,
                     liquidated: false,
                     marketThreshold,
@@ -228,7 +228,8 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
             currentSession,
             testNet,
             name,
-            marginType
+            marginType,
+            paused
         } = botConfig
         if (active)
             return res
@@ -269,7 +270,8 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
             // close open positions if any
             // change account status
             // create a bot for s1 and l1
-            await _closeOpenBTCPositions(selectedAccounts[key], symbol)
+            if (!paused)
+                await _closeOpenBTCPositions(selectedAccounts[key], symbol)
             const accountDetails = await _changeAccountStatus(
                 selectedAccounts[key],
                 true
@@ -372,31 +374,33 @@ const _calculateStatsAndSetSession = async (
                 _botConfigId: bots[indexOfBot]._botConfigId,
                 _botSessionId: currentSession._id
             })
-            totalEndingBtcBalance = bots[indexOfBot].positionOpen
-                ? new BigNumber(totalEndingBtcBalance)
-                      .plus(bots[indexOfBot].balance)
-                      .plus(position.margin)
-                      .plus(bots[indexOfBot].unrealisedPnl)
-                      .toFixed(8)
-                : new BigNumber(totalEndingBtcBalance)
-                      .plus(bots[indexOfBot].balance)
-                      .toFixed(8)
-            totalEndingUsdBalance = bots[indexOfBot].positionOpen
-                ? new BigNumber(totalEndingUsdBalance)
-                      .plus(
-                          new BigNumber(bots[indexOfBot].balance)
-                              .plus(position.margin)
-                              .plus(bots[indexOfBot].unrealisedPnl)
-                              .multipliedBy(exitPrice)
-                      )
-                      .toFixed(8)
-                : new BigNumber(totalEndingUsdBalance)
-                      .plus(
-                          new BigNumber(bots[indexOfBot].balance).multipliedBy(
-                              exitPrice
+            if (position) {
+                totalEndingBtcBalance = bots[indexOfBot].positionOpen
+                    ? new BigNumber(totalEndingBtcBalance)
+                          .plus(bots[indexOfBot].balance)
+                          .plus(position.margin)
+                          .plus(bots[indexOfBot].unrealisedPnl)
+                          .toFixed(8)
+                    : new BigNumber(totalEndingBtcBalance)
+                          .plus(bots[indexOfBot].balance)
+                          .toFixed(8)
+                totalEndingUsdBalance = bots[indexOfBot].positionOpen
+                    ? new BigNumber(totalEndingUsdBalance)
+                          .plus(
+                              new BigNumber(bots[indexOfBot].balance)
+                                  .plus(position.margin)
+                                  .plus(bots[indexOfBot].unrealisedPnl)
+                                  .multipliedBy(exitPrice)
                           )
-                      )
-                      .toFixed(8)
+                          .toFixed(8)
+                    : new BigNumber(totalEndingUsdBalance)
+                          .plus(
+                              new BigNumber(
+                                  bots[indexOfBot].balance
+                              ).multipliedBy(exitPrice)
+                          )
+                          .toFixed(8)
+            }
             let currentBotOrders = await OrderSchema.find({
                 _userId,
                 _botId: bots[indexOfBot]._id,

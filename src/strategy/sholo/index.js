@@ -54,61 +54,51 @@ class Sholo extends Strategy {
                         this.timestamp
                     )
                 }
-            } else {
-                if (this.hasPositions) {
-                    Logger.info('long: checking if buying strategy is met')
-                    if (
-                        new BigNumber(this.price).isLessThanOrEqualTo(
-                            new BigNumber(priceP - priceB).plus(
-                                this.highThreshold
-                            )
-                        ) &&
-                        new BigNumber(this.price).isGreaterThanOrEqualTo(
-                            new BigNumber(priceP - priceB).minus(
-                                this.lowThreshold
-                            )
-                        )
-                    ) {
-                        if (!openOrder)
-                            this.onSellSignal(
-                                new BigNumber(this.price)
-                                    .plus(priceA)
-                                    .toFixed(8),
-                                this.timestamp
-                            )
-                    } else if (
-                        new BigNumber(this.price).isLessThanOrEqualTo(
-                            new BigNumber(priceP + priceR).plus(
-                                this.highThreshold
-                            )
-                        ) &&
-                        new BigNumber(this.price).isGreaterThanOrEqualTo(
-                            new BigNumber(priceP + priceR).minus(
-                                this.lowThreshold
-                            )
-                        )
+            }
+        } else {
+            if (this.hasPositions) {
+                Logger.info('long: checking if buying strategy is met')
+                if (
+                    new BigNumber(this.price).isLessThanOrEqualTo(
+                        new BigNumber(priceP - priceB).plus(this.highThreshold)
+                    ) &&
+                    new BigNumber(this.price).isGreaterThanOrEqualTo(
+                        new BigNumber(priceP - priceB).minus(this.lowThreshold)
                     )
-                        this.onPriceRReachedSignal(this.price, this.timestamp)
-                } else {
-                    //enter positions
-                    Logger.info('long: enter position')
-                    let shouldEnter =
-                        new BigNumber(this.price).isLessThanOrEqualTo(
-                            new BigNumber(entryPrice).plus(this.highThreshold)
-                        ) &&
-                        new BigNumber(this.price).isGreaterThanOrEqualTo(
-                            new BigNumber(entryPrice).minus(this.lowThreshold)
+                ) {
+                    if (!openOrder)
+                        this.onSellSignal(
+                            new BigNumber(this.price).plus(priceA).toFixed(8),
+                            this.timestamp
                         )
-                    let shouldLimitBuy = new BigNumber(
-                        the.price
-                    ).isGreaterThanOrEqualTo(entryPrice + this.highThreshold)
-                    if (shouldLimitBuy) {
-                        Logger.info('long: hit entry limit price')
-                        this.onBuySignal(entryPrice, this.timestamp)
-                    } else if (shouldEnter) {
-                        Logger.info('long: hit entry marketprice')
-                        this.onBuySignal(this.price, this.timestamp, true)
-                    }
+                } else if (
+                    new BigNumber(this.price).isLessThanOrEqualTo(
+                        new BigNumber(priceP + priceR).plus(this.highThreshold)
+                    ) &&
+                    new BigNumber(this.price).isGreaterThanOrEqualTo(
+                        new BigNumber(priceP + priceR).minus(this.lowThreshold)
+                    )
+                )
+                    this.onPriceRReachedSignal(this.price, this.timestamp)
+            } else {
+                //enter positions
+                Logger.info('long: enter position')
+                let shouldEnter =
+                    new BigNumber(this.price).isLessThanOrEqualTo(
+                        new BigNumber(entryPrice).plus(this.highThreshold)
+                    ) &&
+                    new BigNumber(this.price).isGreaterThanOrEqualTo(
+                        new BigNumber(entryPrice).minus(this.lowThreshold)
+                    )
+                let shouldLimitBuy = new BigNumber(
+                    this.price
+                ).isGreaterThanOrEqualTo(entryPrice + this.highThreshold)
+                if (shouldLimitBuy) {
+                    Logger.info('long: hit entry limit price')
+                    this.onBuySignal(entryPrice, this.timestamp)
+                } else if (shouldEnter) {
+                    Logger.info('long: hit entry marketprice')
+                    this.onBuySignal(this.price, this.timestamp, true)
                 }
             }
         }
@@ -151,74 +141,53 @@ class Sholo extends Strategy {
                     )
                     // this.onSellSignal(this.price, this.timestamp)
                 }
+            }
+        } else {
+            if (this.hasPositions) {
+                Logger.info('short: checking if buying strategy is met')
+                if (
+                    new BigNumber(this.price).isLessThanOrEqualTo(
+                        new BigNumber(priceP + priceB).plus(this.highThreshold)
+                    ) &&
+                    new BigNumber(this.price).isGreaterThanOrEqualTo(
+                        new BigNumber(priceP + priceB).minus(this.lowThreshold)
+                    )
+                ) {
+                    if (!openOrder)
+                        this.onSellSignal(
+                            new BigNumber(this.price).minus(priceA).toFixed(8),
+                            this.timestamp
+                        )
+                } else if (
+                    new BigNumber(this.price).isLessThanOrEqualTo(
+                        new BigNumber(priceP - priceR).plus(this.highThreshold)
+                    ) &&
+                    new BigNumber(this.price).isGreaterThanOrEqualTo(
+                        new BigNumber(priceP - priceR).minus(this.lowThreshold)
+                    )
+                )
+                    this.onPriceRReachedSignal(this.price, this.timestamp)
             } else {
-                if (this.hasPositions) {
-                    Logger.info('short: checking if buying strategy is met')
-                    if (
-                        new BigNumber(this.price).isLessThanOrEqualTo(
-                            new BigNumber(priceP + priceB).plus(
-                                this.highThreshold
-                            )
-                        ) &&
-                        new BigNumber(this.price).isGreaterThanOrEqualTo(
-                            new BigNumber(priceP + priceB).minus(
-                                this.lowThreshold
-                            )
-                        )
-                    ) {
-                        if (!openOrder)
-                            this.onSellSignal(
-                                new BigNumber(this.price)
-                                    .minus(priceA)
-                                    .toFixed(8),
-                                this.timestamp
-                            )
-                    } else if (
-                        new BigNumber(this.price).isLessThanOrEqualTo(
-                            new BigNumber(priceP - priceR).plus(
-                                this.highThreshold
-                            )
-                        ) &&
-                        new BigNumber(this.price).isGreaterThanOrEqualTo(
-                            new BigNumber(priceP - priceR).minus(
-                                this.lowThreshold
-                            )
-                        )
+                Logger.info('short: entry price')
+                //enter positions
+                Logger.info('short: enter position')
+                let shouldEnter =
+                    new BigNumber(this.price).isLessThanOrEqualTo(
+                        new BigNumber(entryPrice).plus(this.highThreshold)
+                    ) &&
+                    new BigNumber(this.price).isGreaterThanOrEqualTo(
+                        new BigNumber(entryPrice).minus(this.lowThreshold)
                     )
-                        this.onPriceRReachedSignal(this.price, this.timestamp)
-                } else {
-                    Logger.info('short: entry price')
-                    //enter positions
-                    if (
-                        new BigNumber(this.price).isLessThanOrEqualTo(
-                            new BigNumber(entryPrice).plus(this.highThreshold)
-                        ) &&
-                        new BigNumber(this.price).isGreaterThanOrEqualTo(
-                            new BigNumber(entryPrice).minus(this.lowThreshold)
-                        )
-                    )
-                        this.onBuySignal(this.price, this.timestamp)
 
-                    //enter positions
-                    Logger.info('long: enter position')
-                    let shouldEnter =
-                        new BigNumber(this.price).isLessThanOrEqualTo(
-                            new BigNumber(entryPrice).plus(this.highThreshold)
-                        ) &&
-                        new BigNumber(this.price).isGreaterThanOrEqualTo(
-                            new BigNumber(entryPrice).minus(this.lowThreshold)
-                        )
-
-                    let shouldLimitBuy = new BigNumber(
-                        the.price
-                    ).isLessThanOrEqualTo(entryPrice - this.lowThreshold)
-                    if (shouldLimitBuy) {
-                        Logger.info('short: hit entry limit price')
-                        this.onBuySignal(entryPrice, this.timestamp)
-                    } else if (shouldEnter) {
-                        Logger.info('short: hit entry marketprice')
-                        this.onBuySignal(this.price, this.timestamp, true)
-                    }
+                let shouldLimitBuy = new BigNumber(
+                    this.price
+                ).isLessThanOrEqualTo(entryPrice - this.lowThreshold)
+                if (shouldLimitBuy) {
+                    Logger.info('short: hit entry limit price')
+                    this.onBuySignal(entryPrice, this.timestamp)
+                } else if (shouldEnter) {
+                    Logger.info('short: hit entry marketprice')
+                    this.onBuySignal(this.price, this.timestamp, true)
                 }
             }
         }

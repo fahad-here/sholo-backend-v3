@@ -873,7 +873,14 @@ class Bot {
                 this._inProgress = true
                 Logger.info('current session' + botConfig.currentSession)
                 Logger.info('Bot is paused' + botConfig.paused)
+
                 if (this._bot.positionOpen) {
+                    // if(this._bot.orderOpen){
+                    //     Logger.info('Order open ' + this._bot.positionOpen)
+                    //     Logger.info(`trader info ${this._trader.symbol}`)
+                    //     Logger.info(`trader info ${this._trader.pair}`)
+
+                    // }
                     Logger.info('Position open ' + this._bot.positionOpen)
                     Logger.info(`trader info ${this._trader.symbol}`)
                     Logger.info(`trader info ${this._trader.pair}`)
