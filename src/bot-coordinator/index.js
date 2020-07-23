@@ -2,10 +2,7 @@ const { DBSchemas } = require('../api/db')
 const { BotSchema, UserSchema } = DBSchemas
 const { fork } = require('child_process')
 const { Logger } = require('../utils')
-const parentBotLogDir = require('path').resolve(
-    __dirname,
-    '../../.logs/bot_logs/'
-)
+const parentBotLogDir = require('path').resolve(__dirname, '../../.logs/bots/')
 const parentBotsDir = require('path').resolve(__dirname, '../../src/bot')
 const fs = require('fs')
 const SocketIOConnection = require('../../src/socketio')

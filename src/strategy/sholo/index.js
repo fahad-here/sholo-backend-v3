@@ -10,12 +10,14 @@ class Sholo extends Strategy {
         onLiquidatedSignal,
         onPriceRReachedSignal,
         lowThreshold = 1,
-        highThreshold = 1
+        highThreshold = 1,
+        marketThreshold = 10
     ) {
         super(onBuySignal, onSellSignal, onLiquidatedSignal)
         this.onPriceRReachedSignal = onPriceRReachedSignal
         this.lowThreshold = lowThreshold
         this.highThreshold = highThreshold
+        this.marketThreshold = marketThreshold
     }
 
     async getAndCheckSession() {
@@ -103,10 +105,10 @@ class Sholo extends Strategy {
                 Logger.info('long: enter position')
                 let shouldEnter =
                     new BigNumber(this.price).isLessThanOrEqualTo(
-                        new BigNumber(entryPrice).plus(this.highThreshold)
+                        new BigNumber(entryPrice).plus(this.marketThreshold)
                     ) &&
                     new BigNumber(this.price).isGreaterThanOrEqualTo(
-                        new BigNumber(entryPrice).minus(this.lowThreshold)
+                        new BigNumber(entryPrice).minus(this.marketThreshold)
                     )
                 let shouldLimitBuy = new BigNumber(
                     this.price
@@ -197,10 +199,10 @@ class Sholo extends Strategy {
                 Logger.info('short: enter position')
                 let shouldEnter =
                     new BigNumber(this.price).isLessThanOrEqualTo(
-                        new BigNumber(entryPrice).plus(this.highThreshold)
+                        new BigNumber(entryPrice).plus(this.marketThreshold)
                     ) &&
                     new BigNumber(this.price).isGreaterThanOrEqualTo(
-                        new BigNumber(entryPrice).minus(this.lowThreshold)
+                        new BigNumber(entryPrice).minus(this.marketThreshold)
                     )
 
                 let shouldLimitBuy = new BigNumber(

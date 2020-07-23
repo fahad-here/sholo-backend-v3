@@ -115,6 +115,7 @@ class Bot {
         const feePercent = isMarket
             ? FEES[FEE_TYPE_TAKER]
             : FEES[FEE_TYPE_MAKER]
+        Logger.info(`is Market: ${isMarket}`)
         Logger.info(`fees type: ${feePercent}`)
         const leverage = this._bot.leverage
         let fees
@@ -538,6 +539,7 @@ class Bot {
         remainQuantity
     ) {
         try {
+            Logger.info('order change here')
             Logger.info('order', {
                 exchange,
                 pair,
@@ -559,6 +561,7 @@ class Bot {
                 },
                 { new: true }
             )
+            Logger.info('post save order', order)
             if (status === 'Filled' || remainQuantity === 0) {
                 this._bot = await BotSchema.findByIdAndUpdate(
                     { _id: this._bot._id },
@@ -886,9 +889,13 @@ class Bot {
                         Logger.info('Order open ' + this._bot.positionOpen)
                         Logger.info(`trader info ${this._trader.symbol}`)
                         Logger.info(`trader info ${this._trader.pair}`)
-                        const cancelDetails = await this._trader.cancelOpenOrder(
-                            this._bot._previousOrderId
-                        )
+                        const orderDetails = await OrderSchema.findById({
+                            _id: this._bot._previousOrderId
+                        })
+                        if (orderDetails)
+                            const cancelDetails = await this._trader.cancelOpenOrder(
+                                orderDetails._orderId
+                            )
                     }
                     Logger.info('Position open ' + this._bot.positionOpen)
                     Logger.info(`trader info ${this._trader.symbol}`)
@@ -1006,6 +1013,7 @@ class Bot {
 
 async function main() {
     Logger = ChildLogger('bots', JSON.parse(process.argv[3])._id)
+    Logger.info('logger from child')
     Logger.info(`pid ${process.pid}`)
     Logger.info(`bot order ${JSON.parse(process.argv[3]).order}`)
     const bot = new Bot(process.argv[3])

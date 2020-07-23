@@ -127,7 +127,7 @@ class BaseExchange {
     }
 
     async cancelOpenOrder(orderId, symbol) {
-        if (!this.exchange.has['cancelOpenOrder'])
+        if (!this.exchange.has['cancelOrder'])
             throw new Error(
                 'This exchange does not support cancelling an order'
             )
