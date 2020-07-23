@@ -237,11 +237,9 @@ class Bot {
                     leverage,
                     botOrder.includes('l') ? POSITION_LONG : POSITION_SHORT
                 )
-                const orderDetails = await this._trader.createLimitOrder(
-                    side,
-                    amount,
-                    price
-                )
+                const orderDetails = isMarket
+                    ? await this._trader.createMarketOrder(side, amount)
+                    : await this._trader.createLimitOrder(side, amount, price)
                 Logger.info(`post order`)
                 const { fees, difference } = await this._calculateFees(
                     preOrderBalance,
@@ -540,6 +538,15 @@ class Bot {
         remainQuantity
     ) {
         try {
+            Logger.info('order', {
+                exchange,
+                pair,
+                _orderId,
+                status,
+                totalOrderQuantity,
+                filledQuantity,
+                remainQuantity
+            })
             const order = await OrderSchema.findOneAndUpdate(
                 { _orderId, pair },
                 {
@@ -875,12 +882,14 @@ class Bot {
                 Logger.info('Bot is paused' + botConfig.paused)
 
                 if (this._bot.positionOpen) {
-                    // if(this._bot.orderOpen){
-                    //     Logger.info('Order open ' + this._bot.positionOpen)
-                    //     Logger.info(`trader info ${this._trader.symbol}`)
-                    //     Logger.info(`trader info ${this._trader.pair}`)
-
-                    // }
+                    if (this._bot.orderOpen) {
+                        Logger.info('Order open ' + this._bot.positionOpen)
+                        Logger.info(`trader info ${this._trader.symbol}`)
+                        Logger.info(`trader info ${this._trader.pair}`)
+                        const cancelDetails = await this._trader.cancelOpenOrder(
+                            this._bot._previousOrderId
+                        )
+                    }
                     Logger.info('Position open ' + this._bot.positionOpen)
                     Logger.info(`trader info ${this._trader.symbol}`)
                     Logger.info(`trader info ${this._trader.pair}`)

@@ -1,6 +1,7 @@
 const Strategy = require('../base')
 const BigNumber = require('bignumber.js')
 const { Logger } = require('../../utils')
+const { BotConfigSessionSchema } = require('../../api/db/models')
 
 class Sholo extends Strategy {
     constructor(
@@ -17,6 +18,13 @@ class Sholo extends Strategy {
         this.highThreshold = highThreshold
     }
 
+    async getAndCheckSession() {
+        const session = await BotConfigSessionSchema.findById({
+            _id: this._bot._botSessionId
+        })
+        return session.orderSequence === 3 && session.PositionSequence === 3
+    }
+
     async longStrategy() {
         const {
             priceR,
@@ -31,6 +39,7 @@ class Sholo extends Strategy {
         } = this._bot
         if (positionOpen) {
             Logger.info('long: checking selling and liquidation strategy')
+
             if (
                 new BigNumber(this.price).isGreaterThanOrEqualTo(
                     new BigNumber(liquidationPrice).minus(this.lowThreshold)
@@ -54,6 +63,15 @@ class Sholo extends Strategy {
                         this.timestamp
                     )
                 }
+            } else {
+                const check = await this.getAndCheckSession()
+                Logger.info('long: check for position ' + check)
+                if (check)
+                    if (!openOrder)
+                        this.onSellSignal(
+                            new BigNumber(this.priceP).plus(priceA).toFixed(8),
+                            this.timestamp
+                        )
             }
         } else {
             if (this.hasPositions) {
@@ -93,10 +111,7 @@ class Sholo extends Strategy {
                 let shouldLimitBuy = new BigNumber(
                     this.price
                 ).isGreaterThanOrEqualTo(entryPrice + this.highThreshold)
-                if (shouldLimitBuy) {
-                    Logger.info('long: hit entry limit price')
-                    this.onBuySignal(entryPrice, this.timestamp)
-                } else if (shouldEnter) {
+                if (shouldEnter) {
                     Logger.info('long: hit entry marketprice')
                     this.onBuySignal(this.price, this.timestamp, true)
                 }
@@ -141,6 +156,15 @@ class Sholo extends Strategy {
                     )
                     // this.onSellSignal(this.price, this.timestamp)
                 }
+            } else {
+                const check = await this.getAndCheckSession()
+                Logger.info('short: check for position ' + check)
+                if (check)
+                    if (!openOrder)
+                        this.onSellSignal(
+                            new BigNumber(this.priceP).plus(priceA).toFixed(8),
+                            this.timestamp
+                        )
             }
         } else {
             if (this.hasPositions) {
@@ -182,10 +206,7 @@ class Sholo extends Strategy {
                 let shouldLimitBuy = new BigNumber(
                     this.price
                 ).isLessThanOrEqualTo(entryPrice - this.lowThreshold)
-                if (shouldLimitBuy) {
-                    Logger.info('short: hit entry limit price')
-                    this.onBuySignal(entryPrice, this.timestamp)
-                } else if (shouldEnter) {
+                if (shouldEnter) {
                     Logger.info('short: hit entry marketprice')
                     this.onBuySignal(this.price, this.timestamp, true)
                 }

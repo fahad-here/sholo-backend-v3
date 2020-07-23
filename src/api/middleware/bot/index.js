@@ -114,7 +114,8 @@ const _createBot = async (
         strategy,
         id: _botConfigIdSimple,
         name,
-        marginType
+        marginType,
+        paused
     } = botConfig
     const _accountId = accountDetails._id
     const _accountIdSimple = accountDetails.id
@@ -144,7 +145,7 @@ const _createBot = async (
                     priceR,
                     priceP: entryPrice,
                     entryPrice,
-                    positionOpen: existingBot.positionOpen,
+                    positionOpen: paused ? existingBot.positionOpen : false,
                     leverage,
                     liquidated: false,
                     marketThreshold,
