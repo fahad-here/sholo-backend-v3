@@ -113,7 +113,8 @@ const _createBot = async (
         feeType,
         strategy,
         id: _botConfigIdSimple,
-        name
+        name,
+        marginType
     } = botConfig
     const _accountId = accountDetails._id
     const _accountIdSimple = accountDetails.id
@@ -153,7 +154,8 @@ const _createBot = async (
                     strategy,
                     realisedPnl: 0,
                     unrealisedPnl: 0,
-                    name: `${name} ${order}`
+                    name: `${name} ${order}`,
+                    marginType
                 }
             },
             { upsert: true, new: true }
@@ -187,7 +189,8 @@ const _createBot = async (
             strategy,
             realisedPnl: 0,
             unrealisedPnl: 0,
-            name: `${name} ${order}`
+            name: `${name} bot ${order}`,
+            marginType
         }).save()
 }
 
@@ -224,7 +227,8 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
             id: _botConfigIdSimple,
             currentSession,
             testNet,
-            name
+            name,
+            marginType
         } = botConfig
         if (active)
             return res
@@ -252,7 +256,9 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
                 startedAt: new Date(),
                 strategy,
                 active: true,
-                testNet
+                testNet,
+                marginType,
+                name: `${name} session`
             }).save()
         else
             botConfigSession = await BotConfigSessionSchema.findById({
@@ -593,8 +599,10 @@ async function createBotConfig(req, res, next) {
             leverage,
             marketThreshold,
             testNet,
-            name
+            name,
+            marginType
         } = req.body
+        console.log(req.body)
         const strategy = SHOLO_STRATEGY
         const _userId = req.user._id
         let check = _checkUniqueAccounts(selectedAccounts)
@@ -647,7 +655,8 @@ async function createBotConfig(req, res, next) {
             _userId,
             strategy,
             testNet,
-            name
+            name,
+            marginType
         }).save()
         for (let key of Object.keys(botConfig.selectedAccounts))
             await _toggleAccountInUse(botConfig.selectedAccounts[key], true)
@@ -680,7 +689,8 @@ async function editBotConfig(req, res, next) {
             leverage,
             marketThreshold,
             testNet,
-            name
+            name,
+            marginType
         } = req.body
         const findBotConfig = await BotConfigSchema.findById({
             _id: botConfigID,
@@ -741,7 +751,8 @@ async function editBotConfig(req, res, next) {
                     leverage,
                     marketThreshold,
                     testNet,
-                    name
+                    name,
+                    marginType
                 }
             },
             {

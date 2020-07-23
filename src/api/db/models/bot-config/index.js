@@ -1,7 +1,8 @@
 const mongoose = require('mongoose')
 const {
     ALLOWED_EXCHANGES,
-    ALLOWED_STRATEGIES
+    ALLOWED_STRATEGIES,
+    ALLOWED_MARGIN_TYPES
 } = require('../../../../constants')
 const AutoIncrement = require('mongoose-sequence')(mongoose)
 
@@ -59,6 +60,10 @@ const BotConfigSchema = new mongoose.Schema({
         type: Date,
         required: true,
         default: Date.now
+    },
+    marginType: {
+        type: String,
+        enum: [...ALLOWED_MARGIN_TYPES]
     }
 })
 BotConfigSchema.plugin(AutoIncrement, {

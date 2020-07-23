@@ -1,5 +1,8 @@
 const Joi = require('joi')
-const { ALLOWED_EXCHANGES } = require('../../../../constants')
+const {
+    ALLOWED_EXCHANGES,
+    ALLOWED_MARGIN_TYPES
+} = require('../../../../constants')
 
 module.exports = Joi.object().keys({
     selectedAccounts: Joi.object().keys({
@@ -18,9 +21,12 @@ module.exports = Joi.object().keys({
     priceA: Joi.number().min(1).required(),
     priceB: Joi.number().min(1).required(),
     priceR: Joi.number().min(1).required(),
-    name: Joi.string().required(),
     leverage: Joi.number().min(1).required(),
     feeType: Joi.string().valid('maker', 'taker').required(),
     marketThreshold: Joi.number().min(1),
-    testNet: Joi.boolean().required()
+    testNet: Joi.boolean().required(),
+    name: Joi.string().required(),
+    marginType: Joi.string()
+        .valid(...ALLOWED_MARGIN_TYPES)
+        .required()
 })

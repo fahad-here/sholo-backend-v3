@@ -148,6 +148,7 @@ class BotCoordinator {
                         disabledAndActiveBots.map((bot) => {
                             this.stopBot(bot._id)
                         })
+                    else Logger.info('bot not in this space')
                 })
                 .catch((err) => {
                     Logger.error('Error ', err)

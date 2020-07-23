@@ -2,6 +2,7 @@ const mongoose = require('mongoose')
 const {
     NODE_ENV,
     MONGO_DEV_CONNECTION_STRING,
+    MONGO_TEST_CONNECTION_STRING,
     MONGO_PRODUCTION_CONNECTION_STRING
 } = require('../../../config')
 const { Logger } = require('../../../utils')
@@ -9,7 +10,7 @@ mongoose.Promise = Promise
 
 const dbURL =
     NODE_ENV !== 'production'
-        ? MONGO_DEV_CONNECTION_STRING
+        ? MONGO_TEST_CONNECTION_STRING
         : MONGO_PRODUCTION_CONNECTION_STRING
 
 const DBConnect = () => {

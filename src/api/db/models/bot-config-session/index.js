@@ -1,9 +1,11 @@
 const mongoose = require('mongoose')
 const {
     ALLOWED_EXCHANGES,
-    ALLOWED_STRATEGIES
+    ALLOWED_STRATEGIES,
+    ALLOWED_MARGIN_TYPES
 } = require('../../../../constants')
 const AutoIncrement = require('mongoose-sequence')(mongoose)
+
 
 const BotConfigSessionSchema = new mongoose.Schema({
     _userId: {
@@ -82,6 +84,14 @@ const BotConfigSessionSchema = new mongoose.Schema({
         totalRealisedUsdPnl: { type: String },
         totalUnrealisedBtcPnl: { type: String },
         totalUnrealisedUsdPnl: { type: String }
+    },
+    marginType: {
+        type: String,
+        enum: [...ALLOWED_MARGIN_TYPES]
+    },
+    name:{
+        type: String,
+        required: true
     }
 })
 BotConfigSessionSchema.plugin(AutoIncrement, {

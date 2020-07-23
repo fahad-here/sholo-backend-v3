@@ -55,6 +55,11 @@ const ALLOWED_TIME_FRAMES = [
 const POSITION_LONG = 'long'
 const POSITION_SHORT = 'short'
 
+const MARGIN_TYPE_ISOLATED = 'ISOLATED'
+const MARGIN_TYPE_CROSS = 'CROSS'
+
+const ALLOWED_MARGIN_TYPES = [MARGIN_TYPE_CROSS, MARGIN_TYPE_ISOLATED]
+
 const BUY = 'buy'
 const SELL = 'sell'
 
@@ -108,5 +113,8 @@ module.exports = {
     LIMIT_FEES,
     MARKET_FEES,
     BIDS,
-    ASKS
+    ASKS,
+    MARGIN_TYPE_CROSS,
+    MARGIN_TYPE_ISOLATED,
+    ALLOWED_MARGIN_TYPES
 }
