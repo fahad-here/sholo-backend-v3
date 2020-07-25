@@ -21,10 +21,11 @@ class Trade {
         this.pair = MAP_WS_PAIR_TO_SYMBOL[symbol]
     }
 
-    async setLeverage(leverage) {
+    async setLeverage(leverage, marginType) {
         if (!this.symbol) throw new Error('Please set your exchange pair first')
         this.leverage = leverage
-        return await this.exchange.setLeverage(leverage, this.pair)
+        this.marginType = marginType
+        return await this.exchange.setLeverage(leverage, this.pair, marginType)
     }
 
     //this only works on leverge for bitmex due to bitmex being a futures only exchange

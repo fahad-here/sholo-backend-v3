@@ -8,7 +8,7 @@ class Binance extends BaseExchange {
         super(id, options)
     }
 
-    async setLeverage(leverage, symbol) {
+    async setLeverage(leverage, symbol, marginType) {
         const exchange = this.exchange
         this.leverage = leverage
         await exchange.fapiPrivatePostLeverage({
@@ -16,10 +16,10 @@ class Binance extends BaseExchange {
             leverage
         })
         try {
-            //change to isolated if in cross mode
+            //change to appropriate margin type
             await exchange.fapiPrivatePostMarginType({
                 symbol,
-                marginType: 'ISOLATED'
+                marginType
             })
         } catch (e) {
             const error = JSON.parse(e.message.split(this.id + ' ')[1])

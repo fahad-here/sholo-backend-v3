@@ -1,5 +1,9 @@
 const BaseExchange = require('../base')
-const { POSITION_LONG, POSITION_SHORT } = require('../../constants')
+const {
+    POSITION_LONG,
+    POSITION_SHORT,
+    MARGIN_TYPE_CROSS
+} = require('../../constants')
 const BigNumber = require('bignumber.js')
 
 class Bitmex extends BaseExchange {
@@ -8,7 +12,8 @@ class Bitmex extends BaseExchange {
         super(id, options)
     }
 
-    async setLeverage(leverage, symbol) {
+    async setLeverage(leverage, symbol, marginType) {
+        if (marginType === MARGIN_TYPE_CROSS) leverage = 0
         return await this.exchange.privatePostPositionLeverage({
             symbol,
             leverage
