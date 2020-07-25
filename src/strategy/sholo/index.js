@@ -1,16 +1,17 @@
 const Strategy = require('../base')
 const BigNumber = require('bignumber.js')
-const { Logger } = require('../../utils')
+const { ChildLogger } = require('../../utils')
 const { BotConfigSessionSchema } = require('../../api/db/models')
-
+let Logger
 class Sholo extends Strategy {
     constructor(
         onBuySignal,
         onSellSignal,
         onLiquidatedSignal,
         onPriceRReachedSignal,
-        lowThreshold = 1,
-        highThreshold = 1,
+        botId,
+        lowThreshold = 0,
+        highThreshold = 0,
         marketThreshold = 10
     ) {
         super(onBuySignal, onSellSignal, onLiquidatedSignal)
@@ -18,13 +19,15 @@ class Sholo extends Strategy {
         this.lowThreshold = lowThreshold
         this.highThreshold = highThreshold
         this.marketThreshold = marketThreshold
+        this._botId = botId
+        Logger = ChildLogger('bots', `${botId}__`)
     }
 
     async getAndCheckSession() {
         const session = await BotConfigSessionSchema.findById({
             _id: this._bot._botSessionId
         })
-        return session.orderSequence === 3 && session.PositionSequence === 3
+        return session.orderSequence === 3 && session.positionSequence === 3
     }
 
     async longStrategy() {
@@ -69,11 +72,15 @@ class Sholo extends Strategy {
                 const check = await this.getAndCheckSession()
                 Logger.info('long: check for position ' + check)
                 if (check)
-                    if (!openOrder)
+                    if (!orderOpen) {
+                        Logger.info(`price P ${priceP}`)
+                        Logger.info(`price A ${priceA}`)
+                        Logger.info(`price ${this.price}`)
                         this.onSellSignal(
-                            new BigNumber(this.priceP).plus(priceA).toFixed(8),
+                            new BigNumber(priceP).plus(priceA).toFixed(8),
                             this.timestamp
                         )
+                    }
             }
         } else {
             if (this.hasPositions) {
@@ -86,7 +93,7 @@ class Sholo extends Strategy {
                         new BigNumber(priceP - priceB).minus(this.lowThreshold)
                     )
                 ) {
-                    if (!openOrder)
+                    if (!orderOpen)
                         this.onSellSignal(
                             new BigNumber(this.price).plus(priceA).toFixed(8),
                             this.timestamp
@@ -162,9 +169,9 @@ class Sholo extends Strategy {
                 const check = await this.getAndCheckSession()
                 Logger.info('short: check for position ' + check)
                 if (check)
-                    if (!openOrder)
+                    if (!orderOpen)
                         this.onSellSignal(
-                            new BigNumber(this.priceP).plus(priceA).toFixed(8),
+                            new BigNumber(priceP).minus(priceA).toFixed(8),
                             this.timestamp
                         )
             }
@@ -179,7 +186,7 @@ class Sholo extends Strategy {
                         new BigNumber(priceP + priceB).minus(this.lowThreshold)
                     )
                 ) {
-                    if (!openOrder)
+                    if (!orderOpen)
                         this.onSellSignal(
                             new BigNumber(this.price).minus(priceA).toFixed(8),
                             this.timestamp

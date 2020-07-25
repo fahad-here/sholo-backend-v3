@@ -84,7 +84,7 @@ class Trade {
     }
 
     getExchange() {
-        return this.exchange.getExchange()
+        return this.exchange
     }
 }
 

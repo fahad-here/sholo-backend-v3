@@ -3,7 +3,13 @@ const { SHOLO_STRATEGY } = require('../constants')
 
 const Factory = (
     type,
-    { onBuySignal, onSellSignal, onLiquidatedSignal, onPriceRReachedSignal }
+    {
+        onBuySignal,
+        onSellSignal,
+        onLiquidatedSignal,
+        onPriceRReachedSignal,
+        botId
+    }
 ) => {
     switch (type) {
         case SHOLO_STRATEGY:
@@ -11,14 +17,16 @@ const Factory = (
                 onBuySignal,
                 onSellSignal,
                 onLiquidatedSignal,
-                onPriceRReachedSignal
+                onPriceRReachedSignal,
+                botId
             )
         default:
             return new Sholo(
                 onBuySignal,
                 onSellSignal,
                 onLiquidatedSignal,
-                onPriceRReachedSignal
+                onPriceRReachedSignal,
+                botId
             )
     }
 }

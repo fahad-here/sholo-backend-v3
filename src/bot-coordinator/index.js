@@ -49,7 +49,6 @@ class BotCoordinator {
     startBot(bot) {
         Logger.info(`start bot  ${bot.order}, botID : ${bot._id}`)
         const connection = SocketIOConnection.connection()
-
         // const out = fs.openSync(`${parentBotLogDir}\\out_${bot._id}.log`, 'a')
         // const err = fs.openSync(`${parentBotLogDir}\\err_${bot._id}.log`, 'a')
         this.bots[bot._id] = fork(
@@ -138,6 +137,7 @@ class BotCoordinator {
                         enabledAndInactiveBots.map((bot) => {
                             this.startBot(bot)
                         })
+
                     if (
                         disabledAndActiveBots.length > 0 &&
                         Object.keys(this.bots).length !== 0

@@ -93,6 +93,9 @@ const OrderSchema = new Schema(
         },
         leverage: {
             type: String
+        },
+        orderOpen: {
+            type: Boolean
         }
     },
     {

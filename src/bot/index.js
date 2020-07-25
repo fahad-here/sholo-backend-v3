@@ -48,18 +48,19 @@ class Bot {
         this._inProgress = false
         //uses the strategy passed in by the bot if exists
         this._strategy = Factory(bot.strategy ? bot.strategy : SHOLO_STRATEGY, {
-            onBuySignal: (price, timeStamp) => {
-                this.onBuySignal(price, timeStamp)
+            onBuySignal: (price, timeStamp, isMarket) => {
+                this.onBuySignal(price, timeStamp, isMarket)
             },
-            onSellSignal: (price, timeStamp) => {
-                this.onSellSignal(price, timeStamp)
+            onSellSignal: (price, timeStamp, isMarket) => {
+                this.onSellSignal(price, timeStamp, isMarket)
             },
             onLiquidatedSignal: (price, timeStamp) => {
                 this.onLiquidatedSignal(price, timeStamp)
             },
             onPriceRReachedSignal: (price, timeStamp) => {
                 this.onPriceRReachedSignal(price, timeStamp)
-            }
+            },
+            botId: bot._id
         })
     }
 
@@ -280,7 +281,8 @@ class Bot {
                     pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
                     isExit: positionOpen,
                     leverage: leverage,
-                    orderSequence: botSession.orderSequence
+                    orderSequence: botSession.orderSequence,
+                    orderOpen: orderDetails.remaining !== 0
                 }).save()
                 Logger.info(`post local order save`)
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
@@ -300,9 +302,9 @@ class Bot {
                                       .toFixed(8),
                             priceP: orderDetails.average,
                             liquidationPrice: liquidation,
-                            positionOpen: isBuy,
+                            positionOpen: true,
                             _previousOrderId: order._id,
-                            orderOpen: order.remaining !== 0
+                            orderOpen: orderDetails.remaining !== 0
                         }
                     },
                     { new: true }
@@ -361,7 +363,7 @@ class Bot {
                 } else {
                     Logger.info(`is sell, setting position details`)
                     const changedSet = {
-                        exitPrice: orderDetails.average,
+                        exitPrice: price,
                         endedAt: timestamp,
                         _sellOrderId: order._id,
                         _sellOrderIdSimple: order.id
@@ -561,15 +563,17 @@ class Bot {
                 },
                 { new: true }
             )
+            Logger.info('post save order ' + this._bot._id)
             Logger.info('post save order', order)
             if (status === 'Filled' || remainQuantity === 0) {
                 this._bot = await BotSchema.findByIdAndUpdate(
                     { _id: this._bot._id },
                     {
-                        orderOpen: false
+                        $set: { orderOpen: false }
                     },
                     { new: true }
                 )
+                Logger.info(`bot post order update ` + this._bot.orderOpen)
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
                     type: 'update',
                     bot: this._bot
@@ -702,6 +706,7 @@ class Bot {
                     { _id: this._bot._id },
                     {
                         $set: {
+                            positionOpen: isOpen,
                             realisedPnl: new BigNumber(this._bot.realisedPnl)
                                 .plus(this._position.unrealisedPnl)
                                 .toFixed(8),
@@ -892,8 +897,8 @@ class Bot {
                         const orderDetails = await OrderSchema.findById({
                             _id: this._bot._previousOrderId
                         })
-                        if (orderDetails)
-                            const cancelDetails = await this._trader.cancelOpenOrder(
+                        if (orderDetails.remainQuantity !== 0)
+                            await this._trader.cancelOpenOrder(
                                 orderDetails._orderId
                             )
                     }
@@ -902,18 +907,18 @@ class Bot {
                     Logger.info(`trader info ${this._trader.pair}`)
                     const currentPrice = await this._trader
                         .getExchange()
-                        .getTickerPrice(this._trader.symbol)
+                        .getTickerPrice(this._trader.symbol).lastPrice
                     await PositionSchema.findByIdAndUpdate(
                         { _id: this._position._id },
                         {
                             $set: {
-                                [`exitPrice.${this._bot.order}`]: currentPrice,
+                                [`exitPrice`]: currentPrice,
                                 isOpen: false
                             }
                         }
                     )
                     await BotSchema.findByIdAndUpdate(
-                        { _id: this._bot.id },
+                        { _id: this._bot._id },
                         {
                             $set: {
                                 positionOpen: false
@@ -1012,7 +1017,8 @@ class Bot {
 }
 
 async function main() {
-    Logger = ChildLogger('bots', JSON.parse(process.argv[3])._id)
+    console.log(JSON.parse(process.argv[3]))
+    Logger = ChildLogger('bots', `${JSON.parse(process.argv[3])._id}__`)
     Logger.info('logger from child')
     Logger.info(`pid ${process.pid}`)
     Logger.info(`bot order ${JSON.parse(process.argv[3]).order}`)
