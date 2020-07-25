@@ -1,4 +1,8 @@
-const { SHOLO_STRATEGY } = require('../../../constants')
+const {
+    SHOLO_STRATEGY,
+    MARGIN_TYPE_CROSS,
+    BITMEX_EXCHANGE
+} = require('../../../constants')
 const { ResponseMessage, GetExchangeClass } = require('../../../utils')
 const { DBSchemas } = require('../../db/index')
 const {
@@ -591,7 +595,7 @@ const _pauseBot = async (req, res, next, botConfig, _userId) => {
 
 async function createBotConfig(req, res, next) {
     try {
-        const {
+        let {
             selectedAccounts,
             startingBalances,
             exchange,
@@ -644,7 +648,8 @@ async function createBotConfig(req, res, next) {
                         )
                     )
         }
-
+        if (marginType === MARGIN_TYPE_CROSS && exchange === BITMEX_EXCHANGE)
+            leverage = 100
         let botConfig = await new BotConfigSchema({
             selectedAccounts,
             startingBalances,
@@ -681,7 +686,7 @@ async function editBotConfig(req, res, next) {
     try {
         const botConfigID = req.params.id
         const _userId = req.user._id
-        const {
+        let {
             selectedAccounts,
             startingBalances,
             exchange,
@@ -740,6 +745,8 @@ async function editBotConfig(req, res, next) {
                         )
                     )
         }
+        if (marginType === MARGIN_TYPE_CROSS && exchange === BITMEX_EXCHANGE)
+            leverage = 100
         const changeBotConfig = await BotConfigSchema.findByIdAndUpdate(
             { _id: botConfigID },
             {
