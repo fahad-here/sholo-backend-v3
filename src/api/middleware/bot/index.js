@@ -30,14 +30,19 @@ const _checkUniqueAccounts = (accountIds) => {
 
 const _checkAccountInUse = async (accountIds) => {
     let found = false
+    let archived = false
     for (let key of Object.keys(accountIds)) {
         const check = await AccountSchema.findById({ _id: accountIds[key] })
         if (check.inUse) {
             found = true
             break
         }
+        if (check.archived) {
+            archived = true
+            break
+        }
     }
-    return found
+    return { found, archived }
 }
 
 const _fetchAccountBalance = async (accountID) => {
@@ -619,14 +624,23 @@ async function createBotConfig(req, res, next) {
             return res
                 .status(403)
                 .json(ResponseMessage(true, 'Please choose unique accounts'))
-        const checkUse = await _checkAccountInUse(selectedAccounts)
-        if (checkUse)
+        const { found, archived } = await _checkAccountInUse(selectedAccounts)
+        if (found)
             return res
                 .status(403)
                 .json(
                     ResponseMessage(
                         true,
                         'One or more accounts are already in use by other configurations'
+                    )
+                )
+        if (archived)
+            return res
+                .status(403)
+                .json(
+                    ResponseMessage(
+                        true,
+                        'One or more accounts have been archived, please select another one'
                     )
                 )
         const accountBalances = await _checkAccountBalances(
