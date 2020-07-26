@@ -743,7 +743,25 @@ async function editBotConfig(req, res, next) {
             selectedAccounts,
             startingBalances
         )
-
+        const { found, archived } = await _checkAccountInUse(selectedAccounts)
+        if (found)
+            return res
+                .status(403)
+                .json(
+                    ResponseMessage(
+                        true,
+                        'One or more accounts are already in use by other configurations'
+                    )
+                )
+        if (archived)
+            return res
+                .status(403)
+                .json(
+                    ResponseMessage(
+                        true,
+                        'One or more accounts have been archived, please select another one'
+                    )
+                )
         for (let key of Object.keys(accountBalances)) {
             if (
                 accountBalances[key] === -1 ||
