@@ -14,6 +14,8 @@ const BotConfigSessionSchema = new mongoose.Schema({
     },
     _botConfigId: { type: mongoose.Schema.Types.ObjectId, required: true },
     _botConfigIdSimple: { type: Number },
+    _botConfigName: { type: String },
+    _botNames: { type: Object },
     _botIds: {
         type: Object
     },

@@ -130,7 +130,11 @@ const _createBot = async (
     const _accountIdSimple = accountDetails.id
     const initialBalance = startingBalances[order]
     const direction = order.includes('l') ? 'long' : 'short'
-    const { _id: _botSessionId, id: _botSessionIdSimple } = botConfigSession
+    const {
+        _id: _botSessionId,
+        id: _botSessionIdSimple,
+        name: sessionName
+    } = botConfigSession
     if (existingBot)
         return await BotSchema.findOneAndUpdate(
             { _botConfigId, order },
@@ -143,6 +147,8 @@ const _createBot = async (
                     _accountIdSimple,
                     _botConfigIdSimple,
                     _botSessionIdSimple,
+                    _botConfigName: name,
+                    _botSessionName: `${sessionName} ${_botSessionIdSimple}`,
                     direction,
                     order,
                     exchange,
@@ -179,6 +185,8 @@ const _createBot = async (
             _accountIdSimple,
             _botConfigIdSimple,
             _botSessionIdSimple,
+            _botConfigName: name,
+            _botSessionName: `${sessionName} ${_botSessionIdSimple}`,
             direction,
             order,
             exchange,
@@ -264,6 +272,7 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
                 _userId,
                 _botConfigId: botConfig._id,
                 _botConfigIdSimple,
+                _botConfigName: name,
                 startedAt: new Date(),
                 strategy,
                 active: true,
@@ -299,7 +308,13 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
             )
             botConfigSession = await BotConfigSessionSchema.findByIdAndUpdate(
                 { _id: botConfigSession._id },
-                { $set: { [`_botIds.${bot.order}`]: bot.id } },
+                {
+                    $set: {
+                        name: `${botConfigSession.name} ${botConfigSession.id}`,
+                        [`_botIds.${bot.order}`]: bot.id,
+                        [`_botNames.${bot.order}`]: bot.name
+                    }
+                },
                 { new: true }
             )
             bots.push(bot)

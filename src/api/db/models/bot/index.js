@@ -31,6 +31,8 @@ const BotSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'order'
     },
+    _botConfigName: { type: String },
+    _botSessionName: { type: String },
     _accountIdSimple: {
         type: Number
     },
