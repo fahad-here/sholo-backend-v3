@@ -177,6 +177,10 @@ async function archiveAccount(req, res, next) {
         const _userId = req.user._id
         const _id = req.params.id
         const accountUse = await AccountSchema.findById({ _id, _userId })
+        if (!accountUse)
+            return res
+                .status(403)
+                .json(ResponseMessage(true, 'Account does not exist'))
         if (accountUse.inUse)
             return res
                 .status(403)
@@ -186,6 +190,10 @@ async function archiveAccount(req, res, next) {
                         'Account in use by a bot, Please disable the bot before archiving an account'
                     )
                 )
+        if (accountUse.archived)
+            return res
+                .status(403)
+                .json(ResponseMessage(true, 'Account is already archived'))
         const account = await AccountSchema.findOneAndUpdate(
             {
                 _id,
@@ -198,7 +206,7 @@ async function archiveAccount(req, res, next) {
             },
             { new: true }
         )
-        return account
+        return !account
             ? res
                   .status(500)
                   .json(ResponseMessage(true, 'Error archiving account'))
@@ -208,6 +216,7 @@ async function archiveAccount(req, res, next) {
                       ResponseMessage(false, 'Successful request', { account })
                   )
     } catch (e) {
+        console.log(e)
         return next(e)
     }
 }
@@ -216,6 +225,16 @@ async function unarchiveAccount(req, res, next) {
     try {
         const _userId = req.user._id
         const _id = req.params.id
+        const accountUse = await AccountSchema.findById({ _id, _userId })
+        if (!accountUse)
+            return res
+                .status(403)
+                .json(ResponseMessage(true, 'Account does not exist'))
+        if (!accountUse.archived)
+            return res
+                .status(403)
+                .json(ResponseMessage(true, 'Account is already unarchived'))
+
         const account = await AccountSchema.findOneAndUpdate(
             {
                 _id,
