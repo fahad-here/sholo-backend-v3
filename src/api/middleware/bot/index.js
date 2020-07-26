@@ -1105,7 +1105,10 @@ async function getCurrentSessionDetails(req, res, next) {
 async function archiveBotConfig(req, res, next) {
     try {
         const _id = req.params.id
-        let botConfig = await BotConfigSchema.findById({ _id })
+        let botConfig = await BotConfigSchema.findById({
+            _id,
+            _userId: req.user._id
+        })
         if (!botConfig)
             return res
                 .status(404)
