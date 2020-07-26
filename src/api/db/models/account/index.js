@@ -9,6 +9,10 @@ const accountSchema = new Schema({
         required: true,
         ref: 'User'
     },
+    archived: {
+        type: Boolean,
+        default: false
+    },
     accountName: {
         type: String
     },

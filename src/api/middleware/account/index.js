@@ -172,6 +172,76 @@ async function getAccount(req, res, next) {
     }
 }
 
+async function archiveAccount(req, res, next) {
+    try {
+        const _userId = req.user._id
+        const _id = req.params.id
+        const accountUse = await AccountSchema.findById({ _id, _userId })
+        if (accountUse.inUse)
+            return res
+                .status(403)
+                .json(
+                    ResponseMessage(
+                        true,
+                        'Account in use by a bot, Please disable the bot before archiving an account'
+                    )
+                )
+        const account = await AccountSchema.findOneAndUpdate(
+            {
+                _id,
+                _userId
+            },
+            {
+                $set: {
+                    archived: true
+                }
+            },
+            { new: true }
+        )
+        return account
+            ? res
+                  .status(500)
+                  .json(ResponseMessage(true, 'Error archiving account'))
+            : res
+                  .status(200)
+                  .json(
+                      ResponseMessage(false, 'Successful request', { account })
+                  )
+    } catch (e) {
+        return next(e)
+    }
+}
+
+async function unarchiveAccount(req, res, next) {
+    try {
+        const _userId = req.user._id
+        const _id = req.params.id
+        const account = await AccountSchema.findOneAndUpdate(
+            {
+                _id,
+                _userId
+            },
+            {
+                $set: {
+                    archived: false
+                }
+            },
+            { new: true }
+        )
+        return account
+            ? res
+                  .status(500)
+                  .json(ResponseMessage(true, 'Error archiving account'))
+            : res
+                  .status(200)
+                  .json(
+                      ResponseMessage(false, 'Successful request', { account })
+                  )
+    } catch (e) {
+        return next(e)
+    }
+}
+
 async function deleteAccount(req, res, next) {
     try {
         const _userId = req.user._id
@@ -205,5 +275,7 @@ module.exports = {
     editAccountDetails,
     getAccount,
     getAllAccounts,
-    deleteAccount
+    deleteAccount,
+    archiveAccount,
+    unarchiveAccount
 }
