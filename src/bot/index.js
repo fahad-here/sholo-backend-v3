@@ -621,6 +621,7 @@ class Bot {
                             priceP: average,
                             balance: new BigNumber(this._bot.balance)
                                 .plus(order.cost)
+                                .dividedBy(order.leverage)
                                 .toFixed(8)
                         }
                     },
