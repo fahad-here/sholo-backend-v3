@@ -62,6 +62,7 @@ const BotSchema = new mongoose.Schema({
     balance: { type: String },
     exchange: { type: String, required: true, enum: [...ALLOWED_EXCHANGES] },
     entryPrice: { type: Number, required: true },
+    previousPriceP: { type: Number },
     priceP: { type: Number, required: true },
     priceA: { type: Number, required: true },
     priceB: { type: Number, required: true },

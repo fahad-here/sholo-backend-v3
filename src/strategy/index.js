@@ -1,5 +1,6 @@
 const Sholo = require('./sholo')
-const { SHOLO_STRATEGY } = require('../constants')
+const SholoLimit = require('./sholo-limit')
+const { SHOLO_STRATEGY, SHOLO_STRATEGY_LIMIT } = require('../constants')
 
 const Factory = (
     type,
@@ -11,9 +12,18 @@ const Factory = (
         botId
     }
 ) => {
+    console.log('inside strategy factory')
     switch (type) {
         case SHOLO_STRATEGY:
             return new Sholo(
+                onBuySignal,
+                onSellSignal,
+                onLiquidatedSignal,
+                onPriceRReachedSignal,
+                botId
+            )
+        case SHOLO_STRATEGY_LIMIT:
+            return new SholoLimit(
                 onBuySignal,
                 onSellSignal,
                 onLiquidatedSignal,
@@ -33,5 +43,6 @@ const Factory = (
 
 module.exports = {
     Factory,
-    Sholo
+    Sholo,
+    SholoLimit
 }

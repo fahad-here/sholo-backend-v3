@@ -46,7 +46,9 @@ class Bot {
         this._botId = bot._id
         this._userId = bot._userId
         this._inProgress = false
+
         //uses the strategy passed in by the bot if exists
+        Logger.info('inside constructor')
         this._strategy = Factory(bot.strategy ? bot.strategy : SHOLO_STRATEGY, {
             onBuySignal: (price, timeStamp, isMarket) => {
                 this.onBuySignal(price, timeStamp, isMarket)
@@ -211,6 +213,7 @@ class Bot {
                 order: botOrder,
                 id: _botIdSimple,
                 positionOpen,
+                priceP,
                 orderOpen
             } = this._bot
             const { _id, accountType } = this._account
@@ -276,7 +279,7 @@ class Bot {
                     filledQuantity: orderDetails.filled,
                     remainQuantity: orderDetails.remaining,
                     exchange: exchange,
-                    type: feeType,
+                    type: isMarket ? FEE_TYPE_TAKER : FEE_TYPE_MAKER,
                     symbol: symbol,
                     pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
                     isExit: positionOpen,
@@ -300,7 +303,12 @@ class Bot {
                                 : new BigNumber(this._bot.balance)
                                       .plus(difference)
                                       .toFixed(8),
-                            priceP: orderDetails.average,
+                            previousPriceP: isMarket
+                                ? orderDetails.average
+                                : priceP,
+                            priceP: isMarket
+                                ? orderDetails.average
+                                : orderDetails.price,
                             liquidationPrice: liquidation,
                             positionOpen: true,
                             _previousOrderId: order._id,
@@ -410,6 +418,11 @@ class Bot {
                     { $inc: updateSequence, $set: updateValue },
                     { new: true }
                 )
+                Logger.info(`Session order sequence ${session.orderSequence}`)
+                Logger.info(
+                    `Session position sequence ${session.positionSequence}`
+                )
+
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
                     type: 'session',
                     session
@@ -519,11 +532,15 @@ class Bot {
                 _botConfigId: this._bot._botConfigId,
                 _botSessionId: this._bot._botSessionId
             })
+            const session = await BotConfigSessionSchema.findById({
+                _id: this._bot._botSessionId
+            })
             await this._strategy.run(
                 true,
                 price,
                 timestamp,
                 this._bot,
+                session,
                 hasPositions
             )
         } catch (e) {
@@ -538,7 +555,8 @@ class Bot {
         status,
         totalOrderQuantity,
         filledQuantity,
-        remainQuantity
+        remainQuantity,
+        average
     ) {
         try {
             Logger.info('order change here')
@@ -549,27 +567,51 @@ class Bot {
                 status,
                 totalOrderQuantity,
                 filledQuantity,
-                remainQuantity
+                remainQuantity,
+                average
             })
-            const order = await OrderSchema.findOneAndUpdate(
-                { _orderId, pair },
-                {
-                    $set: {
-                        status,
-                        totalOrderQuantity,
-                        filledQuantity,
-                        remainQuantity
-                    }
-                },
-                { new: true }
-            )
-            Logger.info('post save order ' + this._bot._id)
-            Logger.info('post save order', order)
+            let order = await OrderSchema.findOne({ _orderId, pair })
+            if (order) {
+                let cost = new BigNumber(totalOrderQuantity)
+                    .dividedBy(average)
+                    .multipliedBy(this._bot.leverage)
+                    .toFixed(8)
+                let fees = new BigNumber(cost)
+                    .multipliedBy(
+                        order
+                            ? order.feeType === FEE_TYPE_MAKER
+                                ? LIMIT_FEES
+                                : MARKET_FEES
+                            : LIMIT_FEES
+                    )
+                    .toFixed(8)
+                order = await OrderSchema.findByIdAndUpdate(
+                    { _id: order._id },
+                    {
+                        $set: {
+                            status,
+                            totalOrderQuantity,
+                            filledQuantity,
+                            remainQuantity,
+                            price: average,
+                            cost,
+                            fees,
+                            orderOpen: remainQuantity !== 0
+                        }
+                    },
+                    { new: true }
+                )
+                Logger.info('post save order ' + this._bot._id)
+                Logger.info('post save order', order)
+            }
             if (status === 'Filled' || remainQuantity === 0) {
                 this._bot = await BotSchema.findByIdAndUpdate(
                     { _id: this._bot._id },
                     {
-                        $set: { orderOpen: false }
+                        $set: {
+                            orderOpen: false,
+                            priceP: average
+                        }
                     },
                     { new: true }
                 )
@@ -602,24 +644,24 @@ class Bot {
     ) {
         let changed = false
         let changedSet = {}
-        Logger.info(`positon change current progress: ${this._inProgress}`)
-        Logger.info(`positon change received data isOpen: ${isOpen}`)
+        // Logger.info(`positon change current progress: ${this._inProgress}`)
+        // Logger.info(`positon change received data isOpen: ${isOpen}`)
         if (isOpen) {
             if (this._position && !this._inProgress) {
-                Logger.info(
-                    `position exists and is open and not in progress: `,
-                    {
-                        id,
-                        pair,
-                        isOpen,
-                        margin,
-                        positionSize,
-                        liquidationPrice,
-                        bankruptPrice,
-                        realisedPnl,
-                        unrealisedPnl
-                    }
-                )
+                // Logger.info(
+                //     `position exists and is open and not in progress: `,
+                //     {
+                //         id,
+                //         pair,
+                //         isOpen,
+                //         margin,
+                //         positionSize,
+                //         liquidationPrice,
+                //         bankruptPrice,
+                //         realisedPnl,
+                //         unrealisedPnl
+                //     }
+                // )
                 if (this._position.margin !== margin) {
                     this._position.margin = margin
                     changedSet = {
@@ -670,31 +712,37 @@ class Bot {
                     bot: this._bot
                 })
             } else {
-                Logger.info(`position does not exist and is open `, {
-                    id,
-                    pair,
-                    isOpen,
-                    margin,
-                    positionSize,
-                    liquidationPrice,
-                    bankruptPrice,
-                    realisedPnl,
-                    unrealisedPnl
-                })
+                Logger.info(
+                    `position does not exist and is open `
+                    // ,{
+                    //     id,
+                    //     pair,
+                    //     isOpen,
+                    //     margin,
+                    //     positionSize,
+                    //     liquidationPrice,
+                    //     bankruptPrice,
+                    //     realisedPnl,
+                    //     unrealisedPnl
+                    // }
+                )
             }
         } else {
             if (this._position) {
-                Logger.info(`position exists and is not open {}`, {
-                    id,
-                    pair,
-                    isOpen,
-                    margin,
-                    positionSize,
-                    liquidationPrice,
-                    bankruptPrice,
-                    realisedPnl,
-                    unrealisedPnl
-                })
+                Logger.info(
+                    `position exists and is not open {}`
+                    // , {
+                    //     id,
+                    //     pair,
+                    //     isOpen,
+                    //     margin,
+                    //     positionSize,
+                    //     liquidationPrice,
+                    //     bankruptPrice,
+                    //     realisedPnl,
+                    //     unrealisedPnl
+                    // }
+                )
                 changedSet = {
                     ...changedSet,
                     isOpen,
@@ -719,17 +767,20 @@ class Bot {
                     bot: this._bot
                 })
             } else {
-                Logger.info(`position does not exist and is not open`, {
-                    id,
-                    pair,
-                    isOpen,
-                    margin,
-                    positionSize,
-                    liquidationPrice,
-                    bankruptPrice,
-                    realisedPnl,
-                    unrealisedPnl
-                })
+                Logger.info(
+                    `position does not exist and is not open`
+                    // , {
+                    //     id,
+                    //     pair,
+                    //     isOpen,
+                    //     margin,
+                    //     positionSize,
+                    //     liquidationPrice,
+                    //     bankruptPrice,
+                    //     realisedPnl,
+                    //     unrealisedPnl
+                    // }
+                )
             }
         }
 
@@ -753,6 +804,7 @@ class Bot {
 
     async _subscribeToEvents(bot) {
         const exchange = bot.exchange
+        Logger.info(`exchange ${bot.exchange}`)
         const pair = MAP_WS_PAIR_TO_SYMBOL[bot.symbol]
         //this works only for bitmex right now
         this._ws = GetWSClass(exchange, pair, {
@@ -768,7 +820,8 @@ class Bot {
                 status,
                 totalOrderQuantity,
                 filledQuantity,
-                remainQuantity
+                remainQuantity,
+                average
             ) =>
                 this._onOrderChangeEmitter(
                     exchange,
@@ -777,7 +830,8 @@ class Bot {
                     status,
                     totalOrderQuantity,
                     filledQuantity,
-                    remainQuantity
+                    remainQuantity,
+                    average
                 )
         )
         this._ws.setPositionListener(
@@ -1046,4 +1100,8 @@ async function main() {
     })
 }
 
-main()
+try {
+    main()
+} catch (err) {
+    Logger.info('error', err)
+}

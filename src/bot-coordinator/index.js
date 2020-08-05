@@ -135,7 +135,11 @@ class BotCoordinator {
                     )
                     if (enabledAndInactiveBots.length > 0)
                         enabledAndInactiveBots.map((bot) => {
-                            this.startBot(bot)
+                            try {
+                                this.startBot(bot)
+                            } catch (err) {
+                                console.log(err)
+                            }
                         })
 
                     if (

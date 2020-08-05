@@ -37,18 +37,21 @@ class BitmexWS extends BaseWS {
 
     addOrderTicker() {
         this.ws.addStream(this.pair, 'order', (data, pair, tableName) => {
-            const orderData = data[0]
-            if (orderData)
-                if (this.onEmitOrderChangeListener)
-                    this.onEmitOrderChangeListener(
-                        this.id,
-                        this.pair,
-                        orderData.orderID,
-                        orderData.ordStatus,
-                        orderData.orderQty,
-                        orderData.cumQty,
-                        orderData.leavesQty
-                    )
+            if (data) {
+                data.map((orderData) => {
+                    if (this.onEmitOrderChangeListener)
+                        this.onEmitOrderChangeListener(
+                            this.id,
+                            this.pair,
+                            orderData.orderID,
+                            orderData.ordStatus,
+                            orderData.orderQty,
+                            orderData.cumQty,
+                            orderData.leavesQty,
+                            orderData.avgPx
+                        )
+                })
+            }
         })
     }
 
