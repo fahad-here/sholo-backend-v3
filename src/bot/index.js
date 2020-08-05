@@ -982,7 +982,8 @@ class Bot {
                         { _id: this._bot._id },
                         {
                             $set: {
-                                positionOpen: false
+                                positionOpen: false,
+                                orderOpen: false
                             }
                         }
                     )
