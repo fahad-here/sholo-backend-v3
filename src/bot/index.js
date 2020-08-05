@@ -610,7 +610,10 @@ class Bot {
                     {
                         $set: {
                             orderOpen: false,
-                            priceP: average
+                            priceP: average,
+                            balance: new BigNumber(this._bot.balance)
+                                .plus(order.cost)
+                                .toFixed(8)
                         }
                     },
                     { new: true }
@@ -750,13 +753,17 @@ class Bot {
                     unrealisedPnl
                 }
                 changed = true
+                const botRealisedPnl = new BigNumber(this._bot.realisedPnl)
+                    .plus(this._position.unrealisedPnl)
+                    .toFixed(8)
                 this._bot = await BotSchema.findByIdAndUpdate(
                     { _id: this._bot._id },
                     {
                         $set: {
                             positionOpen: isOpen,
-                            realisedPnl: new BigNumber(this._bot.realisedPnl)
-                                .plus(this._position.unrealisedPnl)
+                            realisedPnl: botRealisedPnl,
+                            balance: new BigNumber(this._bot.balance)
+                                .plus(botRealisedPnl)
                                 .toFixed(8),
                             unrealisedPnl
                         }
