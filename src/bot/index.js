@@ -20,7 +20,14 @@ const {
 const Trade = require('../trade')
 const { Bitmex } = require('../exchange')
 const redis = require('redis')
-const { POSITION_LONG, POSITION_SHORT, SELL, BUY } = require('../constants')
+const {
+    POSITION_LONG,
+    POSITION_SHORT,
+    SELL,
+    BUY,
+    ORDER_TYPE_MARKET,
+    ORDER_TYPE_LIMIT
+} = require('../constants')
 const {
     FEES,
     BITMEX_FEE_CUTOFF,
@@ -276,6 +283,7 @@ class Bot {
                     fees,
                     botOrder,
                     totalOrderQuantity: amount,
+                    type: isMarket ? ORDER_TYPE_MARKET : ORDER_TYPE_LIMIT,
                     filledQuantity: orderDetails.filled,
                     remainQuantity: orderDetails.remaining,
                     exchange: exchange,
