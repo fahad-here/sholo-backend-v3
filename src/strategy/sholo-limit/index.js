@@ -36,6 +36,7 @@ class SholoLimit extends Strategy {
             priceP,
             priceA,
             priceB,
+            priceR,
             positionOpen,
             orderOpen
         } = this._bot
@@ -93,11 +94,14 @@ class SholoLimit extends Strategy {
                     new BigNumber(this.price).isGreaterThanOrEqualTo(
                         new BigNumber(
                             new BigNumber(previousPriceP).plus(priceA)
-                        ).minus(this.marketThreshold5)
+                        ).minus(this.marketThreshold)
                     )) ||
-                new BigNumber(this.price).isGreaterThanOrEqualTo(
+                (new BigNumber(this.price).isGreaterThanOrEqualTo(
                     new BigNumber(previousPriceP).plus(priceA)
-                )
+                ) &&
+                    new BigNumber(this.price).isLessThanOrEqualTo(
+                        new BigNumber(previousPriceP).plus(priceR)
+                    ))
             ) {
                 Logger.info(`long: previousPriceP: ${previousPriceP}`)
                 Logger.info(
@@ -119,16 +123,24 @@ class SholoLimit extends Strategy {
                     )
                 }
             } else if (
-                new BigNumber(this.price).isLessThanOrEqualTo(
+                (new BigNumber(this.price).isLessThanOrEqualTo(
                     new BigNumber(
                         new BigNumber(previousPriceP).minus(priceB)
                     ).plus(this.marketThreshold)
                 ) &&
-                new BigNumber(this.price).isGreaterThanOrEqualTo(
-                    new BigNumber(
-                        new BigNumber(previousPriceP).minus(priceB)
-                    ).minus(this.marketThreshold)
-                )
+                    new BigNumber(this.price).isGreaterThanOrEqualTo(
+                        new BigNumber(
+                            new BigNumber(previousPriceP).minus(priceB)
+                        ).minus(this.marketThreshold)
+                    )) ||
+                (new BigNumber(this.price).isLessThanOrEqualTo(
+                    new BigNumber(new BigNumber(previousPriceP).minus(priceB))
+                ) &&
+                    new BigNumber(this.price).isLessThanOrEqualTo(
+                        new BigNumber(
+                            new BigNumber(previousPriceP).minus(priceR)
+                        )
+                    ))
             ) {
                 Logger.info(`long: previousPriceP: ${previousPriceP}`)
                 Logger.info(
@@ -199,16 +211,24 @@ class SholoLimit extends Strategy {
         } else {
             Logger.info(`short: order sequence > 4`)
             if (
-                new BigNumber(this.price).isLessThanOrEqualTo(
+                (new BigNumber(this.price).isLessThanOrEqualTo(
                     new BigNumber(
                         new BigNumber(previousPriceP).minus(priceA)
                     ).plus(this.marketThreshold)
                 ) &&
-                new BigNumber(this.price).isGreaterThanOrEqualTo(
-                    new BigNumber(
-                        new BigNumber(previousPriceP).minus(priceA)
-                    ).minus(this.marketThreshold)
-                )
+                    new BigNumber(this.price).isGreaterThanOrEqualTo(
+                        new BigNumber(
+                            new BigNumber(previousPriceP).minus(priceA)
+                        ).minus(this.marketThreshold)
+                    )) ||
+                (new BigNumber(this.price).isLessThanOrEqualTo(
+                    new BigNumber(new BigNumber(previousPriceP).minus(priceA))
+                ) &&
+                    new BigNumber(this.price).isGreaterThanOrEqualTo(
+                        new BigNumber(
+                            new BigNumber(previousPriceP).minus(priceR)
+                        )
+                    ))
             ) {
                 Logger.info(`short: previousPriceP: ${previousPriceP}`)
                 Logger.info(
@@ -231,16 +251,24 @@ class SholoLimit extends Strategy {
                     )
                 }
             } else if (
-                new BigNumber(this.price).isLessThanOrEqualTo(
+                (new BigNumber(this.price).isLessThanOrEqualTo(
                     new BigNumber(
                         new BigNumber(previousPriceP).plus(priceB)
                     ).plus(this.marketThreshold)
                 ) &&
-                new BigNumber(this.price).isGreaterThanOrEqualTo(
-                    new BigNumber(
-                        new BigNumber(previousPriceP).plus(priceB)
-                    ).minus(this.marketThreshold)
-                )
+                    new BigNumber(this.price).isGreaterThanOrEqualTo(
+                        new BigNumber(
+                            new BigNumber(previousPriceP).plus(priceB)
+                        ).minus(this.marketThreshold)
+                    )) ||
+                (new BigNumber(this.price).isGreaterThanOrEqualTo(
+                    new BigNumber(new BigNumber(previousPriceP).plus(priceB))
+                ) &&
+                    new BigNumber(this.price).isLessThanOrEqualTo(
+                        new BigNumber(
+                            new BigNumber(previousPriceP).plus(priceR)
+                        )
+                    ))
             ) {
                 Logger.info(`short: previousPriceP: ${previousPriceP}`)
                 Logger.info(
