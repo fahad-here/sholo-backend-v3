@@ -161,6 +161,7 @@ const _createBot = async (
                     priceP: entryPrice,
                     entryPrice,
                     positionOpen: paused ? existingBot.positionOpen : false,
+                    orderOpen: paused ? existingBot.orderOpen : false,
                     leverage,
                     liquidated: false,
                     marketThreshold,
