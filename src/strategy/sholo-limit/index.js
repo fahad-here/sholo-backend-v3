@@ -109,7 +109,7 @@ class SholoLimit extends Strategy {
                         previousPriceP + priceA
                     }`
                 )
-                if (!bot.orderOpen) {
+                if (!orderOpen) {
                     Logger.info(
                         `long: previousPriceP + priceA hit and no open orders, create limit buy order`
                     )
@@ -148,7 +148,7 @@ class SholoLimit extends Strategy {
                         previousPriceP - priceB
                     }`
                 )
-                if (!bot.orderOpen) {
+                if (!orderOpen) {
                     Logger.info(
                         `long: previousPriceP - priceB hit and no open orders, create limit sell order`
                     )
@@ -156,7 +156,6 @@ class SholoLimit extends Strategy {
                         new BigNumber(this.price).plus(priceA).toFixed(8),
                         this.timestamp
                     )
-                    sold = true
                 } else {
                     Logger.info(
                         `long: previousPriceP - priceA hit and open orders, cant create orders`
@@ -173,6 +172,7 @@ class SholoLimit extends Strategy {
             priceP,
             priceA,
             priceB,
+            priceR,
             positionOpen,
             orderOpen
         } = this._bot
@@ -237,7 +237,7 @@ class SholoLimit extends Strategy {
                     }`
                 )
 
-                if (!bot.orderOpen) {
+                if (!orderOpen) {
                     Logger.info(
                         `short: previousPriceP- priceA hit and no open orders, create limit buy order`
                     )
@@ -277,7 +277,7 @@ class SholoLimit extends Strategy {
                     }`
                 )
 
-                if (!bot.orderOpen) {
+                if (!orderOpen) {
                     Logger.info(
                         `short: previousPriceP + priceB hit and no open orders, create limit sell order`
                     )
