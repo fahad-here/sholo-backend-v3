@@ -114,7 +114,10 @@ class SholoLimit extends Strategy {
                         `long: previousPriceP + priceA hit and no open orders, create limit buy order`
                     )
                     this.onBuySignal(
-                        new BigNumber(this.price).minus(priceB).toFixed(8),
+                        new BigNumber(previousPriceP)
+                            .plus(priceA)
+                            .minus(priceB)
+                            .toFixed(8),
                         this.timestamp
                     )
                 } else {
@@ -153,7 +156,10 @@ class SholoLimit extends Strategy {
                         `long: previousPriceP - priceB hit and no open orders, create limit sell order`
                     )
                     this.onSellSignal(
-                        new BigNumber(this.price).plus(priceA).toFixed(8),
+                        new BigNumber(previousPriceP)
+                            .minus(priceB)
+                            .plus(priceA)
+                            .toFixed(8),
                         this.timestamp
                     )
                 } else {
@@ -242,7 +248,10 @@ class SholoLimit extends Strategy {
                         `short: previousPriceP- priceA hit and no open orders, create limit buy order`
                     )
                     this.onBuySignal(
-                        new BigNumber(this.price).plus(priceB).toFixed(8),
+                        new BigNumber(previousPriceP)
+                            .minus(priceA)
+                            .plus(priceB)
+                            .toFixed(8),
                         this.timestamp
                     )
                 } else {
@@ -282,7 +291,10 @@ class SholoLimit extends Strategy {
                         `short: previousPriceP + priceB hit and no open orders, create limit sell order`
                     )
                     this.onSellSignal(
-                        new BigNumber(this.price).minus(priceA).toFixed(8),
+                        new BigNumber(previousPriceP)
+                            .plus(priceB)
+                            .minus(priceA)
+                            .toFixed(8),
                         this.timestamp
                     )
                 } else {
