@@ -239,6 +239,7 @@ class Bot {
             Logger.info(`${this._bot._id} ${side}`)
             Logger.info(`amount : ${amount}`)
             Logger.info(`margin ${margin}`)
+            Logger.info(`pre order bot balance: ${this._bot.balance}`)
             const liquidityCheck = isMarket
                 ? await this._checkLiquidity(amount, price)
                 : true
@@ -619,10 +620,15 @@ class Bot {
                         $set: {
                             orderOpen: false,
                             priceP: average,
-                            balance: new BigNumber(this._bot.balance)
-                                .plus(order.cost)
-                                .dividedBy(order.leverage)
-                                .toFixed(8)
+                            balance: isExit
+                                ? new BigNumber(this._bot.balance)
+                                      .plus(
+                                          new BigNumber(cost).dividedBy(
+                                              order.leverage
+                                          )
+                                      )
+                                      .toFixed(8)
+                                : this._bot.balance
                         }
                     },
                     { new: true }
