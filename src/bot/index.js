@@ -259,6 +259,7 @@ class Bot {
                     isMarket
                 )
                 Logger.info(`fees ${fees}`)
+                Logger.info(`difference ${difference}`)
                 const botSession = await BotConfigSessionSchema.findById({
                     _id: _botSessionId
                 })
@@ -331,6 +332,7 @@ class Bot {
                     bot: this._bot
                 })
                 Logger.info(`post updated bot`)
+                Logger.info(`post order bot balance ${this._bot.balance}`)
                 const newBal = await this._trader.getBalance()
                 this._account = await AccountSchema.findByIdAndUpdate(
                     { _id: this._account._id },
@@ -371,7 +373,7 @@ class Bot {
                         positionData
                     ).save()
                     this._positionId = this._position._id
-                    Logger.info(`setting position`, this._position)
+                    Logger.info(`setting position`, this._position._doc)
                     this._sendSignalToParent('socket', `${this._bot._id}`, {
                         type: 'position',
                         position: this._position
@@ -580,6 +582,7 @@ class Bot {
                 average
             })
             let order = await OrderSchema.findOne({ _orderId, pair })
+            let updatedOrder
             if (order) {
                 let cost = new BigNumber(totalOrderQuantity)
                     .dividedBy(average)
@@ -594,7 +597,7 @@ class Bot {
                             : LIMIT_FEES
                     )
                     .toFixed(8)
-                order = await OrderSchema.findByIdAndUpdate(
+                updatedOrder = await OrderSchema.findByIdAndUpdate(
                     { _id: order._id },
                     {
                         $set: {
@@ -611,22 +614,25 @@ class Bot {
                     { new: true }
                 )
                 Logger.info('post save order ' + this._bot._id)
-                Logger.info('post save order', order)
+                Logger.info('post save order', updatedOrder._doc)
             }
-            if (status === 'Filled' || remainQuantity === 0) {
+            if (
+                (status === 'Filled' || remainQuantity === 0) &&
+                order.orderOpen
+            ) {
+                let cost = new BigNumber(totalOrderQuantity)
+                    .dividedBy(average)
+                    .dividedBy(order.leverage)
+                    .toFixed(8)
                 this._bot = await BotSchema.findByIdAndUpdate(
                     { _id: this._bot._id },
                     {
                         $set: {
                             orderOpen: false,
                             priceP: average,
-                            balance: isExit
+                            balance: order.isExit
                                 ? new BigNumber(this._bot.balance)
-                                      .plus(
-                                          new BigNumber(cost).dividedBy(
-                                              order.leverage
-                                          )
-                                      )
+                                      .plus(cost)
                                       .toFixed(8)
                                 : this._bot.balance
                         }
@@ -634,6 +640,7 @@ class Bot {
                     { new: true }
                 )
                 Logger.info(`bot post order update ` + this._bot.orderOpen)
+                Logger.info(`bot balance order update ` + this._bot.balance)
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
                     type: 'update',
                     bot: this._bot
@@ -641,7 +648,7 @@ class Bot {
             }
             this._sendSignalToParent('socket', `${this._bot._id}`, {
                 type: 'order',
-                order
+                order: updatedOrder
             })
         } catch (e) {
             Logger.error('Error saving order on change', e)
@@ -1007,6 +1014,7 @@ class Bot {
                     Logger.info('Position ' + this._bot.positionOpen)
                 }
             } else {
+                // if orders are open close them here
                 Logger.info(
                     'Paused, current session' + botConfig.currentSession
                 )
