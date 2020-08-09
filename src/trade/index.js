@@ -87,6 +87,10 @@ class Trade {
     getExchange() {
         return this.exchange
     }
+
+    getExchangeTime() {
+        return this.exchange.milliseconds()
+    }
 }
 
 module.exports = Trade

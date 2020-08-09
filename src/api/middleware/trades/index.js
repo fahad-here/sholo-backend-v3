@@ -10,10 +10,10 @@ async function getAllTradesByOrderId(trader, symbol, orderID) {
               }
           }
         : {}
-    let since = trader.getExchange().milliseconds() - 2592000000 // 30 days
+    let since = trader.getExchangeTime() - 2592000000 // 30 days
     trader.setPair(symbol)
     let allTrades = []
-    loop1: while (since < trader.getExchange().milliseconds()) {
+    loop1: while (since < trader.getExchangeTime()) {
         const limit = 500 // change for your limit
         const trades = await trader.getTrades(since, limit, params)
         if (trades.length) {
