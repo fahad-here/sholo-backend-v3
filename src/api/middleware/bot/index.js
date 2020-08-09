@@ -311,7 +311,11 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
                 { _id: botConfigSession._id },
                 {
                     $set: {
-                        name: `${botConfigSession.name} ${botConfigSession.id}`,
+                        name: botConfigSession.name.includes(
+                            botConfigSession.id
+                        )
+                            ? botConfigSession.name
+                            : `${botConfigSession.name} ${botConfigSession.id}`,
                         [`_botIds.${bot.order}`]: bot.id,
                         [`_botNames.${bot.order}`]: bot.name
                     }
