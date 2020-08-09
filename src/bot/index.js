@@ -1011,10 +1011,22 @@ class Bot {
                     )
                     await this._trader.closeOpenPositions()
                 } else {
-                    Logger.info('Position ' + this._bot.positionOpen)
+                    // if orders are open close them here
+                    Logger.info('Position closed ' + this._bot.positionOpen)
+                    if (this._bot.orderOpen) {
+                        Logger.info('Order open ' + this._bot.positionOpen)
+                        Logger.info(`trader info ${this._trader.symbol}`)
+                        Logger.info(`trader info ${this._trader.pair}`)
+                        const orderDetails = await OrderSchema.findById({
+                            _id: this._bot._previousOrderId
+                        })
+                        if (orderDetails.remainQuantity !== 0)
+                            await this._trader.cancelOpenOrder(
+                                orderDetails._orderId
+                            )
+                    }
                 }
             } else {
-                // if orders are open close them here
                 Logger.info(
                     'Paused, current session' + botConfig.currentSession
                 )
