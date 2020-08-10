@@ -457,7 +457,7 @@ class Bot {
                 this._position ? this._position.isOpen : null
             } ${this._inProgress}`
         )
-        if (!this._position && !this._inProgress) {
+        if (!this._inProgress) {
             Logger.info(`on buy signal`)
             await this.onBuySellSignal(price, timestamp, true, isMarket)
             // save this order in db
@@ -476,11 +476,7 @@ class Bot {
                 this._position ? this._position.isOpen : null
             } ${this._inProgress}`
         )
-        if (!this._position) {
-            Logger.error(`No current position`)
-        } else if (this._position.isOpen && !this._inProgress)
-            Logger.error('Current position is not open')
-        if (this._position && this._position.isOpen && !this._inProgress) {
+        if (!this._inProgress) {
             Logger.info(`on sell signal`)
             await this.onBuySellSignal(price, timestamp, false, isMarket)
         }
