@@ -22,6 +22,7 @@ const SimulationResultSchema = new mongoose.Schema({
     },
     timeFrame: { type: String, required: true },
     symbol: { type: String, required: true },
+    archived: { type: Boolean, default: false },
     startTime: { type: Date, required: true },
     endTime: { type: Date, required: true },
     totalInitialUsdBalance: { type: String, required: true },

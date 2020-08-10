@@ -16,6 +16,7 @@ const BackTestConfigSchema = new mongoose.Schema({
     priceB: { type: Number, required: true },
     priceR: { type: Number, required: true },
     leverage: { type: Number, default: 1, max: 100, min: 1 },
+    archived: { type: Boolean, default: false },
     feeType: { type: String, required: true, enum: ['maker', 'taker'] },
     createdAt: {
         type: Date,

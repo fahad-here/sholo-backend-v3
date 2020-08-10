@@ -264,6 +264,77 @@ async function deleteMultipleResults(req, res, next) {
     }
 }
 
+async function archiveMultipleResults(req, res, next) {
+    try {
+        const user = req.user
+        const { deleteIds } = req.body
+
+        const archiveResult = await SimulationResultSchema.updateMany(
+            {
+                _userId: user._id,
+                _id: { $in: deleteIds }
+            },
+            {
+                $set: { archived: true }
+            },
+            { new: true }
+        )
+        if (archiveResult.n !== archiveResult.nModified)
+            return res
+                .status(500)
+                .json(ResponseMessage(true, 'Could not archive all results'))
+        const results = await SimulationResultSchema.find({
+            _userId: user._id,
+            _id: { $in: deleteIds }
+        })
+        return res.json(
+            ResponseMessage(false, 'Successful request', {
+                results
+            })
+        )
+    } catch (e) {
+        console.log(e)
+        return next(e)
+    }
+}
+
+async function archiveBackTestConfig(req, res, next) {
+    try {
+        const id = req.params.id
+        const user = req.user
+        if (!id)
+            return res
+                .status(400)
+                .json(
+                    ResponseMessage(
+                        true,
+                        'Need to pass back test configuration id'
+                    )
+                )
+        const archiveResult = await BackTestConfigSchema.findOneAndUpdate(
+            {
+                _id: id,
+                _userId: user._id
+            },
+            { $set: { archived: true } },
+            { new: true }
+        )
+        if (archiveResult)
+            return res.json(
+                ResponseMessage(
+                    false,
+                    'Successfully deleted back test configuration',
+                    { backTestConfig: archiveResult }
+                )
+            )
+        return res
+            .status(500)
+            .json(ResponseMessage(true, 'Error deleting bot configuration'))
+    } catch (e) {
+        return next(e)
+    }
+}
+
 async function deleteBackTestConfig(req, res, next) {
     try {
         const id = req.params.id
@@ -305,5 +376,7 @@ module.exports = {
     runBackTestConfig,
     getBackTestResult,
     getAllBackTestResults,
-    deleteMultipleResults
+    deleteMultipleResults,
+    archiveMultipleResults,
+    archiveBackTestConfig
 }
