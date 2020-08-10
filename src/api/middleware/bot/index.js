@@ -151,7 +151,7 @@ const _createBot = async (
                     _botSessionName: `${sessionName} ${_botSessionIdSimple}`,
                     direction,
                     order,
-                                  _botSessionName: !sessionName.includes(_botSessionIdSimple)
+                    _botSessionName: !sessionName.includes(_botSessionIdSimple)
                         ? `${sessionName} ${_botSessionIdSimple}`
                         : sessionName,
                     direction,
@@ -475,49 +475,53 @@ const _calculateStatsAndSetSession = async (
                               )
                               .toFixed(8)
                 }
-er(totalRealisedBtcPnl)
-                .multipliedBy(exitPrice)
-                .toFixed(8)
-            totalUnrealisedBtcPnl = 0
-            totalUnrealisedUsdPnl = 0
-        }
-        totalBtcPnl = new BigNumber(totalEndingBtcBalance)
-            .minus(totalInitialBtcBalance)
-            .toFixed(8)
-        totalUsdPnl = new BigNumber(totalEndingUsdBalance)
-            .minus(totalInitialUsdBalance)
-            .toFixed(8)
-        //need to fetch current btc price here and calculate
-        totalFeesUsdPaid = new BigNumber(totalFeesBtcPaid)
-            .multipliedBy(currentTickerPrice)
-            .toFixed(8)
-    }
-    return await BotConfigSessionSchema.findByIdAndUpdate(
-        { _id: currentSession._id },
-        {
-            $set: {
-                stats: {
-                    totalInitialBtcBalance,
-                    totalInitialUsdBalance,
-                    totalEndingUsdBalance,
-                    totalEndingBtcBalance,
-                    totalBtcPnl,
-                    totalUsdPnl,
-                    totalFeesBtcPaid,
-                    totalFeesUsdPaid,
-                    totalRealisedBtcPnl,
-                    totalRealisedUsdPnl,
-                    totalUnrealisedBtcPnl,
-                    totalUnrealisedUsdPnl
-                },
-                active: false,
-                endedAt: Date.now(),
-                ...exitChange
+                totalRealisedBtcPnl = new BigNumber(totalRealisedBtcPnl)
+                    .plus(bots[indexOfBot].realisedPnl)
+                    .plus(bots[indexOfBot].unrealisedPnl)
+                    .toFixed(8)
+                totalRealisedUsdPnl = new BigNumber(totalRealisedBtcPnl)
+                    .multipliedBy(exitPrice)
+                    .toFixed(8)
+                totalUnrealisedBtcPnl = 0
+                totalUnrealisedUsdPnl = 0
             }
+            totalBtcPnl = new BigNumber(totalEndingBtcBalance)
+                .minus(totalInitialBtcBalance)
+                .toFixed(8)
+            totalUsdPnl = new BigNumber(totalEndingUsdBalance)
+                .minus(totalInitialUsdBalance)
+                .toFixed(8)
+            //need to fetch current btc price here and calculate
+            totalFeesUsdPaid = new BigNumber(totalFeesBtcPaid)
+                .multipliedBy(currentTickerPrice)
+                .toFixed(8)
         }
-    )
+        return await BotConfigSessionSchema.findByIdAndUpdate(
+            { _id: currentSession._id },
+            {
+                $set: {
+                    stats: {
+                        totalInitialBtcBalance,
+                        totalInitialUsdBalance,
+                        totalEndingUsdBalance,
+                        totalEndingBtcBalance,
+                        totalBtcPnl,
+                        totalUsdPnl,
+                        totalFeesBtcPaid,
+                        totalFeesUsdPaid,
+                        totalRealisedBtcPnl,
+                        totalRealisedUsdPnl,
+                        totalUnrealisedBtcPnl,
+                        totalUnrealisedUsdPnl
+                    },
+                    active: false,
+                    endedAt: Date.now(),
+                    ...exitChange
+                }
+            }
+        )
+    }
 }
-
 const _stopBot = async (req, res, next, botConfig, _userId) => {
     try {
         let { selectedAccounts, active, currentSession, paused } = botConfig
@@ -971,9 +975,11 @@ async function getAllBotSessions(req, res, next) {
         botSessions = botSessions.sort(
             (a, b) => new Date(b.startedAt) - new Date(a.startedAt)
         )
-        return res
-            .status(200)
-            .json(ResponseMessage(false, 'Successful Request', { botSessions }))
+        return res.status(200).json(
+            ResponseMessage(false, 'Successful Request', {
+                botSessions
+            })
+        )
     } catch (e) {
         return next(e)
     }

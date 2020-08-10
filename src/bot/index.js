@@ -1214,7 +1214,10 @@ class Bot {
                 this._account.testNet
             )
             this._trader.setPair(this._bot.symbol)
-            await this._trader.setLeverage(this._bot.leverage)
+            await this._trader.setLeverage(
+                this._bot.leverage,
+                this._bot.marginType
+            )
         } catch (e) {
             Logger.error(`Error setting up trader, `, err)
         }
