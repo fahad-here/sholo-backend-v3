@@ -432,6 +432,46 @@ const _calculateStatsAndSetSession = async (
                               ).multipliedBy(exitPrice)
                           )
                           .toFixed(8)
+            } else {
+                let order = await OrderSchema.findOne({
+                    orderOpen: true,
+                    botOrder: key,
+                    _botConfigId: bots[indexOfBot]._botConfigId,
+                    _botSessionId: currentSession._id
+                })
+                if (order) {
+                    totalEndingBtcBalance = bots[indexOfBot].orderOpen
+                        ? new BigNumber(totalEndingBtcBalance)
+                              .plus(bots[indexOfBot].balance)
+                              .plus(
+                                  new BigNumber(order.amount)
+                                      .dividedBy(order.orderPrice)
+                                      .toFixed(8)
+                              )
+                              .toFixed(8)
+                        : new BigNumber(totalEndingBtcBalance)
+                              .plus(bots[indexOfBot].balance)
+                              .toFixed(8)
+                    totalEndingUsdBalance = bots[indexOfBot].orderOpen
+                        ? new BigNumber(totalEndingUsdBalance)
+                              .plus(
+                                  new BigNumber(bots[indexOfBot].balance)
+                                      .plus(
+                                          new BigNumber(order.amount)
+                                              .dividedBy(order.orderPrice)
+                                              .toFixed(8)
+                                      )
+                                      .multipliedBy(exitPrice)
+                              )
+                              .toFixed(8)
+                        : new BigNumber(totalEndingUsdBalance)
+                              .plus(
+                                  new BigNumber(
+                                      bots[indexOfBot].balance
+                                  ).multipliedBy(exitPrice)
+                              )
+                              .toFixed(8)
+                }
             }
             let currentBotOrders = await OrderSchema.find({
                 _userId,
