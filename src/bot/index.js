@@ -277,6 +277,7 @@ class Bot {
                     timestamp: orderDetails.datetime,
                     side,
                     price: orderDetails.average,
+                    orderPrice: price,
                     amount,
                     cost: new BigNumber(orderDetails.cost)
                         .dividedBy(100000000)
