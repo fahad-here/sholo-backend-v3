@@ -82,6 +82,9 @@ const OrderSchema = new Schema(
         type: {
             type: String
         },
+        feeType: {
+            type: String
+        },
         symbol: {
             type: String
         },

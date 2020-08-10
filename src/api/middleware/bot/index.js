@@ -148,7 +148,9 @@ const _createBot = async (
                     _botConfigIdSimple,
                     _botSessionIdSimple,
                     _botConfigName: name,
-                    _botSessionName: `${sessionName} ${_botSessionIdSimple}`,
+                    _botSessionName: !sessionName.includes(_botSessionIdSimple)
+                        ? `${sessionName} ${_botSessionIdSimple}`
+                        : sessionName,
                     direction,
                     order,
                     exchange,
@@ -311,7 +313,11 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
                 { _id: botConfigSession._id },
                 {
                     $set: {
-                        name: `${botConfigSession.name} ${botConfigSession.id}`,
+                        name: !botConfigSession.name.includes(
+                            botConfigSession.id
+                        )
+                            ? `${botConfigSession.name} ${botConfigSession.id}`
+                            : botConfigSession.name,
                         [`_botIds.${bot.order}`]: bot.id,
                         [`_botNames.${bot.order}`]: bot.name
                     }
