@@ -1090,7 +1090,7 @@ class Bot {
                 this._inProgress = true
                 Logger.info('current session' + botConfig.currentSession)
                 Logger.info('Bot is paused' + botConfig.paused)
-
+                let balanceToAdd = 0
                 if (this._bot.positionOpen) {
                     if (this._bot.orderOpen) {
                         Logger.info('Order open ' + this._bot.positionOpen)
@@ -1099,10 +1099,11 @@ class Bot {
                         const orderDetails = await OrderSchema.findById({
                             _id: this._bot._previousOrderId
                         })
-                        if (orderDetails.remainQuantity !== 0)
+                        if (orderDetails.remainQuantity !== 0) {
                             await this._trader.cancelOpenOrder(
                                 orderDetails._orderId
                             )
+                        }
                     }
                     Logger.info('Position open ' + this._bot.positionOpen)
                     Logger.info(`trader info ${this._trader.symbol}`)
@@ -1119,12 +1120,18 @@ class Bot {
                             }
                         }
                     )
+                    balanceToAdd = new BigNumber(this._position.margin).toFixed(
+                        8
+                    )
                     await BotSchema.findByIdAndUpdate(
                         { _id: this._bot._id },
                         {
                             $set: {
                                 positionOpen: false,
-                                orderOpen: false
+                                orderOpen: false,
+                                balance: new BigNumber(this._bot.balance)
+                                    .plus(balanceToAdd)
+                                    .toFixed(8)
                             }
                         }
                     )
@@ -1136,14 +1143,35 @@ class Bot {
                         Logger.info('Order open ' + this._bot.positionOpen)
                         Logger.info(`trader info ${this._trader.symbol}`)
                         Logger.info(`trader info ${this._trader.pair}`)
+
+                        let balanceToAdd = 0
                         const orderDetails = await OrderSchema.findById({
                             _id: this._bot._previousOrderId
                         })
-                        if (orderDetails.remainQuantity !== 0)
+                        if (orderDetails.remainQuantity !== 0) {
                             await this._trader.cancelOpenOrder(
                                 orderDetails._orderId
                             )
+
+                            balanceToAdd = new BigNumber(
+                                orderDetails.totalOrderQuantity
+                            )
+                                .dividedBy(orderDetails.orderPrice)
+                                .toFixed(8)
+                        }
                     }
+                    await BotSchema.findByIdAndUpdate(
+                        { _id: this._bot._id },
+                        {
+                            $set: {
+                                positionOpen: false,
+                                orderOpen: false,
+                                balance: new BigNumber(this._bot.balance)
+                                    .plus(balanceToAdd)
+                                    .toFixed(8)
+                            }
+                        }
+                    )
                 }
             } else {
                 Logger.info(
