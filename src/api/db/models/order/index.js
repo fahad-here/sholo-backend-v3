@@ -61,6 +61,9 @@ const OrderSchema = new Schema(
         price: {
             type: Number
         },
+        orderPrice: {
+            type: Number
+        },
         amount: {
             type: Number
         },
@@ -80,6 +83,9 @@ const OrderSchema = new Schema(
             type: Number
         },
         type: {
+            type: String
+        },
+        feeType: {
             type: String
         },
         symbol: {

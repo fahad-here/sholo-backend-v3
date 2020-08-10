@@ -31,11 +31,23 @@ backTestController.delete(
     BackTestMiddleware.deleteBackTestConfig
 )
 
+backTestController.put(
+    '/archive/:id',
+    AuthMiddleware.requireJWT,
+    BackTestMiddleware.archiveBackTestConfig
+)
+
 backTestController.post(
     '/:id/run',
     AuthMiddleware.requireJWT,
     ValidateBody(RunSimulation),
     BackTestMiddleware.runBackTestConfig
+)
+
+backTestController.put(
+    '/results/archive',
+    AuthMiddleware.requireJWT,
+    BackTestMiddleware.archiveMultipleResults
 )
 
 backTestController.patch(

@@ -151,6 +151,11 @@ const _createBot = async (
                     _botSessionName: `${sessionName} ${_botSessionIdSimple}`,
                     direction,
                     order,
+                                  _botSessionName: !sessionName.includes(_botSessionIdSimple)
+                        ? `${sessionName} ${_botSessionIdSimple}`
+                        : sessionName,
+                    direction,
+                    order,
                     exchange,
                     symbol,
                     initialBalance,
@@ -311,11 +316,11 @@ const _startBot = async (req, res, next, botConfig, _userId) => {
                 { _id: botConfigSession._id },
                 {
                     $set: {
-                        name: botConfigSession.name.includes(
+                        name: !botConfigSession.name.includes(
                             botConfigSession.id
                         )
-                            ? botConfigSession.name
-                            : `${botConfigSession.name} ${botConfigSession.id}`,
+                            ? `${botConfigSession.name} ${botConfigSession.id}`
+                            : botConfigSession.name,
                         [`_botIds.${bot.order}`]: bot.id,
                         [`_botNames.${bot.order}`]: bot.name
                     }
@@ -430,23 +435,47 @@ const _calculateStatsAndSetSession = async (
                               ).multipliedBy(exitPrice)
                           )
                           .toFixed(8)
-            }
-            let currentBotOrders = await OrderSchema.find({
-                _userId,
-                _botId: bots[indexOfBot]._id,
-                _botConfigId: botConfig._id,
-                _botSessionId: currentSession._id
-            })
-            currentBotOrders.map((currentOrder) => {
-                totalFeesBtcPaid = new BigNumber(totalFeesBtcPaid)
-                    .plus(currentOrder.fees)
-                    .toFixed(8)
-            })
-            totalRealisedBtcPnl = new BigNumber(totalRealisedBtcPnl)
-                .plus(bots[indexOfBot].realisedPnl)
-                .plus(bots[indexOfBot].unrealisedPnl)
-                .toFixed(8)
-            totalRealisedUsdPnl = new BigNumber(totalRealisedBtcPnl)
+            } else {
+                let order = await OrderSchema.findOne({
+                    orderOpen: true,
+                    botOrder: key,
+                    _botConfigId: bots[indexOfBot]._botConfigId,
+                    _botSessionId: currentSession._id
+                })
+                if (order) {
+                    totalEndingBtcBalance = bots[indexOfBot].orderOpen
+                        ? new BigNumber(totalEndingBtcBalance)
+                              .plus(bots[indexOfBot].balance)
+                              .plus(
+                                  new BigNumber(order.amount)
+                                      .dividedBy(order.orderPrice)
+                                      .toFixed(8)
+                              )
+                              .toFixed(8)
+                        : new BigNumber(totalEndingBtcBalance)
+                              .plus(bots[indexOfBot].balance)
+                              .toFixed(8)
+                    totalEndingUsdBalance = bots[indexOfBot].orderOpen
+                        ? new BigNumber(totalEndingUsdBalance)
+                              .plus(
+                                  new BigNumber(bots[indexOfBot].balance)
+                                      .plus(
+                                          new BigNumber(order.amount)
+                                              .dividedBy(order.orderPrice)
+                                              .toFixed(8)
+                                      )
+                                      .multipliedBy(exitPrice)
+                              )
+                              .toFixed(8)
+                        : new BigNumber(totalEndingUsdBalance)
+                              .plus(
+                                  new BigNumber(
+                                      bots[indexOfBot].balance
+                                  ).multipliedBy(exitPrice)
+                              )
+                              .toFixed(8)
+                }
+er(totalRealisedBtcPnl)
                 .multipliedBy(exitPrice)
                 .toFixed(8)
             totalUnrealisedBtcPnl = 0
