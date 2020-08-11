@@ -181,7 +181,7 @@ class Bot {
             margin = new BigNumber(tradeBalanceBtc).minus(tradeFees).toFixed(8)
             amount = new BigNumber(margin)
                 .multipliedBy(currentUsdPrice)
-                .multipliedBy(0.96)
+                .multipliedBy(leverage >= 40 ? 0.87 : 0.94)
                 .integerValue(BigNumber.ROUND_DOWN)
                 .toFixed(0)
             Logger.info(
