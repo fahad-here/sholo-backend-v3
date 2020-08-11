@@ -89,7 +89,7 @@ class Trade {
     }
 
     getExchangeTime() {
-        return this.exchange.milliseconds()
+        return this.exchange.exchange.milliseconds()
     }
 }
 
