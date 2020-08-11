@@ -1,3 +1,4 @@
+require('dotenv').config()
 const BigNumber = require('bignumber.js')
 const { DBConnect } = require('../src/api/db')
 const {DBSchemas} = require('../src/api/db')

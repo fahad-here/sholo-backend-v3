@@ -1,3 +1,4 @@
+require('dotenv').config()
 const { DBConnect } = require('../src/api/db')
 const {DBSchemas} = require('../src/api/db')
 const {
