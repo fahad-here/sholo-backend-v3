@@ -86,6 +86,8 @@ class Bot {
             : BIDS
         let thresholdAmount = 0
         Logger.info(`Side : ${side}`)
+        Logger.info(`Amount : ${amount}`)
+        Logger.info(`1st ${side} Amount : ${l1OrderBook[side][0][1]}`)
         if (amount > l1OrderBook[side][0][1]) {
             for (let i = 0; i < l1OrderBook[side].length; i++) {
                 switch (side) {
@@ -109,9 +111,8 @@ class Bot {
                         break
                 }
             }
-            Logger.info(`Amount : ${amount}`)
             Logger.info(`Threshold Amount : ${thresholdAmount}`)
-            return amount >= thresholdAmount
+            return amount <= thresholdAmount
         } else return true
     }
 
@@ -608,7 +609,9 @@ class Bot {
                     _id: _botSessionId
                 })
                 if (
-                    (status === 'Filled' || remainQuantity === 0) &&
+                    (status === 'Filled' ||
+                        remainQuantity === 0 ||
+                        status === 'PartiallyFilled') &&
                     order.orderOpen
                 ) {
                     let cost = new BigNumber(totalOrderQuantity)
@@ -619,7 +622,7 @@ class Bot {
                         { _id: this._bot._id },
                         {
                             $set: {
-                                orderOpen: false,
+                                orderOpen: status === 'Filled' ? false : true,
                                 priceP: average,
                                 balance: order.isExit
                                     ? new BigNumber(this._bot.balance)
@@ -633,7 +636,7 @@ class Bot {
                     Logger.info(`bot post order update ` + this._bot.orderOpen)
                     Logger.info(`bot balance order update ` + this._bot.balance)
 
-                    const { _id, accountType } = this._account
+                    const { _id } = this._account
                     if (
                         !order.isExit &&
                         !this._position &&
