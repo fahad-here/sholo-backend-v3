@@ -15,7 +15,8 @@ const {
     REDIS_PORT,
     AWS_SES_ACCESS_KEY_ID,
     AWS_SES_SECRET_ACCESS_KEY,
-    AWS_SES_REGION
+    AWS_SES_REGION,
+    NODE_ENV
 } = process.env
 
 const whitelist = ['http://localhost:3000']
@@ -51,5 +52,6 @@ module.exports = {
     REDIS_HOST,
     REDIS_PASSWORD,
     REDIS_PORT,
-    SES_CONFIG
+    SES_CONFIG,
+    NODE_ENV
 }
