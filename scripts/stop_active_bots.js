@@ -10,7 +10,7 @@ const _pauseBot = async (bot) => {
         let { active } = bot
         if (!active)
             return false
-        const bot = await BotSchema.findOneAndUpdate(
+        bot = await BotSchema.findOneAndUpdate(
             {
                 _id: bot._id,
             },
