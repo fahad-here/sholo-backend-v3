@@ -37,6 +37,7 @@ class SholoLimit extends Strategy {
             priceA,
             priceB,
             priceR,
+            liquidationPrice,
             positionOpen,
             orderOpen
         } = this._bot
@@ -86,6 +87,13 @@ class SholoLimit extends Strategy {
             //     )
             // }
             if (
+                positionOpen &&
+                new BigNumber(this.price).isGreaterThanOrEqualTo(
+                    liquidationPrice
+                )
+            ) {
+                this.onLiquidatedSignal(this.price, this.timestamp)
+            } else if (
                 (new BigNumber(this.price).isLessThanOrEqualTo(
                     new BigNumber(
                         new BigNumber(previousPriceP).plus(priceA)
@@ -184,6 +192,7 @@ class SholoLimit extends Strategy {
             priceA,
             priceB,
             priceR,
+            liquidationPrice,
             positionOpen,
             orderOpen
         } = this._bot
@@ -222,6 +231,11 @@ class SholoLimit extends Strategy {
         } else {
             Logger.info(`short: order sequence > 4`)
             if (
+                positionOpen &&
+                new BigNumber(this.price).isLessThanOrEqualTo(liquidationPrice)
+            ) {
+                this.onLiquidatedSignal(this.price, this.timestamp)
+            } else if (
                 (new BigNumber(this.price).isLessThanOrEqualTo(
                     new BigNumber(
                         new BigNumber(previousPriceP).minus(priceA)
