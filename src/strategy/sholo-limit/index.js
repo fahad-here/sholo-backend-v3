@@ -167,7 +167,12 @@ class SholoLimit extends Strategy {
                         `long: previousPriceP - priceA hit and open orders, cant create orders`
                     )
                 }
-            }
+            } else if (
+                new BigNumber(this.price).isGreaterThanOrEqualTo(
+                    new BigNumber(previousPriceP).plus(priceR)
+                )
+            )
+                this.onPriceRReachedSignal(this.price, this.timestamp)
         }
     }
 
@@ -302,7 +307,12 @@ class SholoLimit extends Strategy {
                         `short: previousPriceP + priceB hit and open orders, cant create orders`
                     )
                 }
-            }
+            } else if (
+                new BigNumber(this.price).isGreaterThanOrEqualTo(
+                    new BigNumber(previousPriceP).plus(priceR)
+                )
+            )
+                this.onPriceRReachedSignal(this.price, this.timestamp)
         }
     }
 
