@@ -6,6 +6,7 @@
     "start": "nodemon ./app.js",
     "stopbots":"node ./scripts/stop_bots.js",
     "pausebots":"node ./scripts/pause_bots.js",
+    "forcestopbots":"node ./scripts/stop_active_bots.js",
     "prettier": "prettier --write \"src/**/*.js\"",
     "test": "mocha \"./__tests__/**/*.js\""
   },
