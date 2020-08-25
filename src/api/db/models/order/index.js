@@ -102,6 +102,12 @@ const OrderSchema = new Schema(
         },
         orderOpen: {
             type: Boolean
+        },
+        accountName: {
+            type: String
+        },
+        orderSequence: {
+            type: Number
         }
     },
     {

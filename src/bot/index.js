@@ -296,6 +296,7 @@ class Bot {
                     pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
                     isExit: positionOpen,
                     leverage: leverage,
+                    accountName: this._account.accountName,
                     orderSequence: botSession.orderSequence,
                     orderOpen: orderDetails.remaining !== 0
                 }).save()
@@ -501,6 +502,7 @@ class Bot {
         Logger.info(`onPriceRReachedSignal`)
         if (!this._position && !this._inProgress) {
             //send email notification
+            this._inProgress = true
             this._sendSignalToParent('email', `${this._bot._id}`, {
                 account: this._account,
                 bot: this._bot,

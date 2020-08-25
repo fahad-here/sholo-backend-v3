@@ -100,7 +100,12 @@ class BotCoordinator {
     }
 
     stopBot(botId) {
-        this.bots[botId].send({ command: 'stop', args: { botId } })
+        try {
+            this.bots[botId].send({ command: 'stop', args: { botId } })
+        } catch (e) {
+            Logger.error(`Error Stopping bot with id: ${botId}`)
+            Logger.error('Error ', err)
+        }
     }
 
     async killSwitch() {
