@@ -1,7 +1,8 @@
 const {
     SHOLO_STRATEGY,
     MARGIN_TYPE_CROSS,
-    BITMEX_EXCHANGE
+    BITMEX_EXCHANGE,
+    SHOLO_STRATEGY_LIMIT
 } = require('../../../constants')
 const { ResponseMessage, GetExchangeClass } = require('../../../utils')
 const { DBSchemas } = require('../../db/index')
@@ -669,8 +670,7 @@ async function createBotConfig(req, res, next) {
             name,
             marginType
         } = req.body
-        console.log(req.body)
-        const strategy = SHOLO_STRATEGY
+        const strategy = SHOLO_STRATEGY_LIMIT
         const _userId = req.user._id
         let check = _checkUniqueAccounts(selectedAccounts)
         if (!check)

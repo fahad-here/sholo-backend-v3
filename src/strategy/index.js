@@ -31,7 +31,7 @@ const Factory = (
                 botId
             )
         default:
-            return new Sholo(
+            return new SholoLimit(
                 onBuySignal,
                 onSellSignal,
                 onLiquidatedSignal,
