@@ -503,6 +503,11 @@ class Bot {
         if (!this._position && !this._inProgress) {
             //send email notification
             this._inProgress = true
+            this._bot = await BotSchema.findByIdAndUpdate(
+                { _id: this._bot._id },
+                { $set: { priceRReached: true } },
+                { new: true }
+            )
             this._sendSignalToParent('email', `${this._bot._id}`, {
                 account: this._account,
                 bot: this._bot,

@@ -104,7 +104,7 @@ class BotCoordinator {
             this.bots[botId].send({ command: 'stop', args: { botId } })
         } catch (e) {
             Logger.error(`Error Stopping bot with id: ${botId}`)
-            Logger.error('Error ', err)
+            Logger.error('Error ', e)
         }
     }
 
