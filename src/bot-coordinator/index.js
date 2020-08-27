@@ -138,13 +138,10 @@ class BotCoordinator {
                     let disabledAndActiveBots = bots.filter(
                         (bot) => !bot.enabled && bot.active
                     )
-                    Logger.info(
-                        `Enabled and inactive bots: ${enabledAndInactiveBots.length}`
-                    )
-                    Logger.info(
-                        `Disabled and active bots: ${disabledAndActiveBots.length}`
-                    )
-                    if (enabledAndInactiveBots.length > 0)
+                    if (enabledAndInactiveBots.length > 0) {
+                        Logger.info(
+                            `Enabled and inactive bots: ${enabledAndInactiveBots.length}`
+                        )
                         enabledAndInactiveBots.map((bot) => {
                             try {
                                 this.startBot(bot)
@@ -152,15 +149,18 @@ class BotCoordinator {
                                 console.log(err)
                             }
                         })
-
+                    }
                     if (
                         disabledAndActiveBots.length > 0 &&
                         Object.keys(this.bots).length !== 0
-                    )
+                    ) {
+                        Logger.info(
+                            `Disabled and active bots: ${disabledAndActiveBots.length}`
+                        )
                         disabledAndActiveBots.map((bot) => {
                             this.stopBot(bot._id)
                         })
-                    else Logger.info('bot not in this space')
+                    } else Logger.info('bot not in this space')
                 })
                 .catch((err) => {
                     Logger.error('Error ', err)
