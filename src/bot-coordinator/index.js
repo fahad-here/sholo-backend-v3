@@ -7,6 +7,7 @@ const parentBotsDir = require('path').resolve(__dirname, '../../src/bot')
 const fs = require('fs')
 const SocketIOConnection = require('../../src/socketio')
 const { SendEmail, BodyTemplates } = require('../email')
+const { BotConfigSessionSchema, BotConfigSchema } = require('../api/db/models')
 const HEART_BEAT = 15000 //milliseconds
 const { PriceReachedEmail } = BodyTemplates
 let botCoordinator = null
@@ -105,6 +106,11 @@ class BotCoordinator {
         } catch (e) {
             Logger.error(`Error Stopping bot with id: ${botId}`)
             Logger.error('Error ', e)
+            BotSchema.findById({ _id: botId }).then((bot) => {
+                if (!bot.liquidated && !bot.priceRReached) {
+                    this.startBot(bot)
+                }
+            })
         }
     }
 
