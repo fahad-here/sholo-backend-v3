@@ -13,8 +13,10 @@ let botCoordinator = null
 
 class BotCoordinator {
     _exitGracefully() {
+        Logger.info(`Exiting gracefully`)
         const connection = SocketIOConnection.connection()
         for (let key of Object.keys(this.bots)) {
+            Logger.info(`Exiting gracefully ${key}`)
             for (let id of Object.keys(connection.sockets))
                 connection.sockets[id].emit(
                     `${key}`,
