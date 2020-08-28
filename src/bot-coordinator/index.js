@@ -7,7 +7,6 @@ const parentBotsDir = require('path').resolve(__dirname, '../../src/bot')
 const fs = require('fs')
 const SocketIOConnection = require('../../src/socketio')
 const { SendEmail, BodyTemplates } = require('../email')
-const { BotConfigSessionSchema, BotConfigSchema } = require('../api/db/models')
 const HEART_BEAT = 15000 //milliseconds
 const { PriceReachedEmail } = BodyTemplates
 let botCoordinator = null
@@ -38,9 +37,9 @@ class BotCoordinator {
             `SIGTERM`
         ]
         events.forEach((eventType) => {
-            process.on(eventType, (eventType, exitCode) => {
+            process.on(eventType, (event, exitCode) => {
                 Logger.info(
-                    `Event type happened ${eventType} with code ${exitCode}`
+                    `Event type happened ${eventType} : ${event} with code ${exitCode}`
                 )
                 this._exitGracefully()
             })
@@ -129,9 +128,9 @@ class BotCoordinator {
     initializeBots() {
         this._processHandlers()
         setInterval(() => {
-            Logger.info('Checking for bot state changes ')
             BotSchema.find({})
                 .then((bots) => {
+                    // Logger.info(` bots length ${bots.length}`)
                     let enabledAndInactiveBots = bots.filter(
                         (bot) => bot.enabled && !bot.active
                     )
@@ -160,7 +159,7 @@ class BotCoordinator {
                         disabledAndActiveBots.map((bot) => {
                             this.stopBot(bot._id)
                         })
-                    } else Logger.info('bot not in this space')
+                    }
                 })
                 .catch((err) => {
                     Logger.error('Error ', err)

@@ -521,7 +521,6 @@ class Bot {
 
     async onTickerPriceReceived(price, timestamp) {
         try {
-            Logger.info(`looking for active positions`)
             const hasPositions = await PositionSchema.findOne({
                 _botId: this._bot._id,
                 _botConfigId: this._bot._botConfigId,
@@ -864,20 +863,21 @@ class Bot {
                     bot: this._bot
                 })
             } else {
-                Logger.info(
-                    `position does not exist and is open `
-                    // ,{
-                    //     id,
-                    //     pair,
-                    //     isOpen,
-                    //     margin,
-                    //     positionSize,
-                    //     liquidationPrice,
-                    //     bankruptPrice,
-                    //     realisedPnl,
-                    //     unrealisedPnl
-                    // }
-                )
+                //position does not exist and in progress
+                // Logger.info(
+                //       `position does not exist and is open `
+                //      ,{
+                //          id,
+                //          pair,
+                //          isOpen,
+                //          margin,
+                //          positionSize,
+                //          liquidationPrice,
+                //          bankruptPrice,
+                //          realisedPnl,
+                //          unrealisedPnl
+                //      }
+                // )
             }
         } else {
             if (this._position) {

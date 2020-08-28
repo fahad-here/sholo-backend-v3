@@ -22,7 +22,7 @@ class SholoLimit extends Strategy {
         this.marketThreshold = marketThreshold
         this._botId = botId
         Logger = ChildLogger('bots', `${botId}__`)
-        Logger.info('inside straateggr')
+        Logger.info('inside strategy')
     }
 
     async getSessionOrderSequence() {
@@ -197,7 +197,6 @@ class SholoLimit extends Strategy {
             orderOpen
         } = this._bot
         const orderSequence = await this.getSessionOrderSequence()
-        Logger.info('Order sequence', orderOpen)
         if (orderSequence === 1 || orderSequence === 2) {
             Logger.info(
                 `short: order sequence = 1 || 2, orderSequence = ${orderSequence}`
@@ -229,7 +228,9 @@ class SholoLimit extends Strategy {
                 )
             }
         } else {
-            Logger.info(`short: order sequence > 4`)
+            Logger.info(
+                `short: order sequence > 4, current price ${this.price}`
+            )
             if (
                 positionOpen &&
                 new BigNumber(this.price).isLessThanOrEqualTo(liquidationPrice)
@@ -338,7 +339,6 @@ class SholoLimit extends Strategy {
         sessionDetails,
         hasPositions
     ) {
-        Logger.info('inside run')
         this._bot = botDetails
         this._session = sessionDetails
         this.price = currentCandlePrice
