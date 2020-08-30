@@ -276,8 +276,7 @@ class Bot {
                         pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
                         isExit: positionOpen,
                         leverage: leverage,
-                        accountName: this._account.accountName,
-                        orderSequence: botSession.orderSequence
+                        accountName: this._account.accountName
                     }).save()
                 const orderDetails = isMarket
                     ? await this._trader.createMarketOrder(side, amount)
@@ -307,7 +306,8 @@ class Bot {
                                 filledQuantity: orderDetails.filled,
                                 remainQuantity: orderDetails.remaining,
                                 price: orderDetails.average,
-                                fees
+                                fees,
+                                orderSequence: botSession.orderSequence
                             }
                         },
                         { new: true }
