@@ -253,31 +253,6 @@ class Bot {
                 )
                 //create order here and update it later
                 let order
-                if (!isMarket)
-                    order = await new OrderSchema({
-                        _userId,
-                        _botId: this._botId,
-                        _botConfigId,
-                        _botSessionId,
-                        _accountId: _id,
-                        _botIdSimple,
-                        _accountIdSimple,
-                        _botConfigIdSimple,
-                        _botSessionIdSimple,
-                        side,
-                        orderPrice: price,
-                        amount,
-                        botOrder,
-                        totalOrderQuantity: amount,
-                        type: isMarket ? ORDER_TYPE_MARKET : ORDER_TYPE_LIMIT,
-                        exchange: exchange,
-                        feeType: isMarket ? FEE_TYPE_TAKER : FEE_TYPE_MAKER,
-                        symbol: symbol,
-                        pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
-                        isExit: positionOpen,
-                        leverage: leverage,
-                        accountName: this._account.accountName
-                    }).save()
                 const orderDetails = isMarket
                     ? await this._trader.createMarketOrder(side, amount)
                     : await this._trader.createLimitOrder(side, amount, price)
@@ -291,64 +266,43 @@ class Bot {
                 const botSession = await BotConfigSessionSchema.findById({
                     _id: _botSessionId
                 })
-                if (!isMarket)
-                    order = await OrderSchema.findByIdAndUpdate(
-                        { _id: order._id },
-                        {
-                            $set: {
-                                orderOpen: orderDetails.remaining !== 0,
-                                _orderId: orderDetails.id,
-                                timestamp: orderDetails.datetime,
-                                cost: new BigNumber(orderDetails.cost)
-                                    .dividedBy(100000000)
-                                    .toFixed(8),
-                                status: orderDetails.info.ordStatus,
-                                filledQuantity: orderDetails.filled,
-                                remainQuantity: orderDetails.remaining,
-                                price: orderDetails.average,
-                                fees,
-                                orderSequence: botSession.orderSequence
-                            }
-                        },
-                        { new: true }
-                    )
-                else
-                    order = await new OrderSchema({
-                        _userId,
-                        _botId: this._botId,
-                        _botConfigId,
-                        _botSessionId,
-                        _accountId: _id,
-                        _botIdSimple,
-                        _accountIdSimple,
-                        _botConfigIdSimple,
-                        _botSessionIdSimple,
-                        _orderId: orderDetails.id,
-                        timestamp: orderDetails.datetime,
-                        side,
-                        price: orderDetails.average,
-                        orderPrice: price,
-                        amount,
-                        cost: new BigNumber(orderDetails.cost)
-                            .dividedBy(100000000)
-                            .toFixed(8),
-                        status: orderDetails.info.ordStatus,
-                        fees,
-                        botOrder,
-                        totalOrderQuantity: amount,
-                        type: isMarket ? ORDER_TYPE_MARKET : ORDER_TYPE_LIMIT,
-                        filledQuantity: orderDetails.filled,
-                        remainQuantity: orderDetails.remaining,
-                        exchange: exchange,
-                        feeType: isMarket ? FEE_TYPE_TAKER : FEE_TYPE_MAKER,
-                        symbol: symbol,
-                        pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
-                        isExit: positionOpen,
-                        leverage: leverage,
-                        accountName: this._account.accountName,
-                        orderSequence: botSession.orderSequence,
-                        orderOpen: orderDetails.remaining !== 0
-                    }).save()
+
+                order = await new OrderSchema({
+                    _userId,
+                    _botId: this._botId,
+                    _botConfigId,
+                    _botSessionId,
+                    _accountId: _id,
+                    _botIdSimple,
+                    _accountIdSimple,
+                    _botConfigIdSimple,
+                    _botSessionIdSimple,
+                    _orderId: orderDetails.id,
+                    timestamp: orderDetails.datetime,
+                    side,
+                    price: orderDetails.average,
+                    orderPrice: price,
+                    amount,
+                    cost: new BigNumber(orderDetails.cost)
+                        .dividedBy(100000000)
+                        .toFixed(8),
+                    status: orderDetails.info.ordStatus,
+                    fees,
+                    botOrder,
+                    totalOrderQuantity: amount,
+                    type: isMarket ? ORDER_TYPE_MARKET : ORDER_TYPE_LIMIT,
+                    filledQuantity: orderDetails.filled,
+                    remainQuantity: orderDetails.remaining,
+                    exchange: exchange,
+                    feeType: isMarket ? FEE_TYPE_TAKER : FEE_TYPE_MAKER,
+                    symbol: symbol,
+                    pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
+                    isExit: positionOpen,
+                    leverage: leverage,
+                    accountName: this._account.accountName,
+                    orderSequence: botSession.orderSequence,
+                    orderOpen: orderDetails.remaining !== 0
+                }).save()
                 Logger.info(`post local order save`)
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
                     type: 'order',
@@ -613,162 +567,125 @@ class Bot {
                 remainQuantity,
                 average
             })
-            let order = await OrderSchema.findOne({ _orderId, pair })
-            let updatedOrder
-            if (order) {
-                let cost = new BigNumber(totalOrderQuantity)
-                    .dividedBy(average)
-                    .multipliedBy(this._bot.leverage)
-                    .toFixed(8)
-                let fees = new BigNumber(cost)
-                    .multipliedBy(
-                        order
-                            ? order.feeType === FEE_TYPE_MAKER
-                                ? LIMIT_FEES
-                                : MARKET_FEES
-                            : LIMIT_FEES
-                    )
-                    .toFixed(8)
-                updatedOrder = await OrderSchema.findByIdAndUpdate(
-                    { _id: order._id },
-                    {
-                        $set: {
-                            status,
-                            totalOrderQuantity,
-                            filledQuantity,
-                            remainQuantity,
-                            price: average,
-                            cost,
-                            fees,
-                            orderOpen: remainQuantity !== 0
-                        }
-                    },
-                    { new: true }
-                )
-                Logger.info('post save order ' + this._bot._id)
-                Logger.info('post save order', updatedOrder._doc)
-                const {
-                    _userId,
-                    _botConfigId,
-                    _botSessionId,
-                    _accountIdSimple,
-                    _botConfigIdSimple,
-                    _botSessionIdSimple,
-                    exchange: exchangeBot,
-                    symbol,
-                    leverage,
-                    order: botOrder,
-                    id: _botIdSimple
-                } = this._bot
-                const botSession = await BotConfigSessionSchema.findById({
-                    _id: _botSessionId
-                })
-                if (
-                    (status === 'Filled' ||
-                        remainQuantity === 0 ||
-                        status === 'PartiallyFilled') &&
-                    order.orderOpen
-                ) {
+            setTimeout(async () => {
+                let order = await OrderSchema.findOne({ _orderId, pair })
+                let updatedOrder
+                if (order) {
                     let cost = new BigNumber(totalOrderQuantity)
                         .dividedBy(average)
-                        .dividedBy(order.leverage)
+                        .multipliedBy(this._bot.leverage)
                         .toFixed(8)
-                    this._bot = await BotSchema.findByIdAndUpdate(
-                        { _id: this._bot._id },
+                    let fees = new BigNumber(cost)
+                        .multipliedBy(
+                            order
+                                ? order.feeType === FEE_TYPE_MAKER
+                                    ? LIMIT_FEES
+                                    : MARKET_FEES
+                                : LIMIT_FEES
+                        )
+                        .toFixed(8)
+                    updatedOrder = await OrderSchema.findByIdAndUpdate(
+                        { _id: order._id },
                         {
                             $set: {
-                                orderOpen: status === 'Filled' ? false : true,
-                                priceP: average,
-                                balance: order.isExit
-                                    ? new BigNumber(this._bot.balance)
-                                          .plus(cost)
-                                          .toFixed(8)
-                                    : this._bot.balance
+                                status,
+                                totalOrderQuantity,
+                                filledQuantity,
+                                remainQuantity,
+                                price: average,
+                                cost,
+                                fees,
+                                orderOpen: remainQuantity !== 0
                             }
                         },
                         { new: true }
                     )
-                    Logger.info(`bot post order update ` + this._bot.orderOpen)
-                    Logger.info(`bot balance order update ` + this._bot.balance)
-
-                    const { _id } = this._account
+                    Logger.info('post save order ' + this._bot._id)
+                    Logger.info('post save order', updatedOrder._doc)
+                    const {
+                        _userId,
+                        _botConfigId,
+                        _botSessionId,
+                        _accountIdSimple,
+                        _botConfigIdSimple,
+                        _botSessionIdSimple,
+                        exchange: exchangeBot,
+                        symbol,
+                        leverage,
+                        order: botOrder,
+                        id: _botIdSimple
+                    } = this._bot
+                    const botSession = await BotConfigSessionSchema.findById({
+                        _id: _botSessionId
+                    })
                     if (
-                        !order.isExit &&
-                        !this._position &&
-                        order.type === ORDER_TYPE_LIMIT
+                        (status === 'Filled' ||
+                            remainQuantity === 0 ||
+                            status === 'PartiallyFilled') &&
+                        order.orderOpen
                     ) {
-                        Logger.info(`buy order filled, setting position`)
-                        const positionData = {
-                            _userId,
-                            _botId: this._botId,
-                            _botConfigId,
-                            _botSessionId,
-                            _accountId: _id,
-                            _botIdSimple,
-                            _accountIdSimple,
-                            _botConfigIdSimple,
-                            _botSessionIdSimple,
-                            _buyOrderId: order._id,
-                            _buyOrderIdSimple: order.id,
-                            isOpen: true,
-                            side: botOrder.includes('l')
-                                ? POSITION_LONG
-                                : POSITION_SHORT,
-                            entryPrice: average,
-                            symbol,
-                            pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
-                            exchange: exchangeBot,
-                            leverage,
-                            startedAt: new Date()
-                        }
-                        this._position = await new PositionSchema(
-                            positionData
-                        ).save()
-                        this._positionId = this._position._id
-                        Logger.info(`setting position`, this._position._doc)
-                        this._sendSignalToParent('socket', `${this._bot._id}`, {
-                            type: 'position',
-                            position: this._position
-                        })
-                        Logger.info(`post buy order filled position bot`)
-                    } else {
-                        Logger.info(
-                            `sell order filled, setting position details`
-                        )
-                        const changedSet = {
-                            exitPrice: average,
-                            endedAt: new Date(),
-                            _sellOrderId: order._id,
-                            _sellOrderIdSimple: order.id
-                        }
-                        if (!this._position) {
-                            const pos = await PositionSchema.findByIdAndUpdate(
-                                { _id: this._positionId },
-                                { $set: changedSet },
-                                { new: true }
-                            )
-                            Logger.info(
-                                `post sell order filled changing position`
-                            )
-                            this._sendSignalToParent(
-                                'socket',
-                                `${this._bot._id}`,
-                                {
-                                    type: 'position',
-                                    position: pos
+                        let cost = new BigNumber(totalOrderQuantity)
+                            .dividedBy(average)
+                            .dividedBy(order.leverage)
+                            .toFixed(8)
+                        this._bot = await BotSchema.findByIdAndUpdate(
+                            { _id: this._bot._id },
+                            {
+                                $set: {
+                                    orderOpen:
+                                        status === 'Filled' ? false : true,
+                                    priceP: average,
+                                    balance: order.isExit
+                                        ? new BigNumber(this._bot.balance)
+                                              .plus(cost)
+                                              .toFixed(8)
+                                        : this._bot.balance
                                 }
-                            )
-                            this._positionId = null
-                            Logger.info(`post sell order filled position bot`)
-                        } else {
-                            this._position = await PositionSchema.findByIdAndUpdate(
-                                { _id: this._position._id },
-                                { $set: changedSet },
-                                { new: true }
-                            )
-                            Logger.info(
-                                `post sell order filled changing position`
-                            )
+                            },
+                            { new: true }
+                        )
+                        Logger.info(
+                            `bot post order update ` + this._bot.orderOpen
+                        )
+                        Logger.info(
+                            `bot balance order update ` + this._bot.balance
+                        )
+
+                        const { _id } = this._account
+                        if (
+                            !order.isExit &&
+                            !this._position &&
+                            order.type === ORDER_TYPE_LIMIT
+                        ) {
+                            Logger.info(`buy order filled, setting position`)
+                            const positionData = {
+                                _userId,
+                                _botId: this._botId,
+                                _botConfigId,
+                                _botSessionId,
+                                _accountId: _id,
+                                _botIdSimple,
+                                _accountIdSimple,
+                                _botConfigIdSimple,
+                                _botSessionIdSimple,
+                                _buyOrderId: order._id,
+                                _buyOrderIdSimple: order.id,
+                                isOpen: true,
+                                side: botOrder.includes('l')
+                                    ? POSITION_LONG
+                                    : POSITION_SHORT,
+                                entryPrice: average,
+                                symbol,
+                                pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
+                                exchange: exchangeBot,
+                                leverage,
+                                startedAt: new Date()
+                            }
+                            this._position = await new PositionSchema(
+                                positionData
+                            ).save()
+                            this._positionId = this._position._id
+                            Logger.info(`setting position`, this._position._doc)
                             this._sendSignalToParent(
                                 'socket',
                                 `${this._bot._id}`,
@@ -777,47 +694,99 @@ class Bot {
                                     position: this._position
                                 }
                             )
-                            Logger.info(`post sell order filled position bot`)
+                            Logger.info(`post buy order filled position bot`)
+                        } else {
+                            Logger.info(
+                                `sell order filled, setting position details`
+                            )
+                            const changedSet = {
+                                exitPrice: average,
+                                endedAt: new Date(),
+                                _sellOrderId: order._id,
+                                _sellOrderIdSimple: order.id
+                            }
+                            if (!this._position) {
+                                const pos = await PositionSchema.findByIdAndUpdate(
+                                    { _id: this._positionId },
+                                    { $set: changedSet },
+                                    { new: true }
+                                )
+                                Logger.info(
+                                    `post sell order filled changing position`
+                                )
+                                this._sendSignalToParent(
+                                    'socket',
+                                    `${this._bot._id}`,
+                                    {
+                                        type: 'position',
+                                        position: pos
+                                    }
+                                )
+                                this._positionId = null
+                                Logger.info(
+                                    `post sell order filled position bot`
+                                )
+                            } else {
+                                this._position = await PositionSchema.findByIdAndUpdate(
+                                    { _id: this._position._id },
+                                    { $set: changedSet },
+                                    { new: true }
+                                )
+                                Logger.info(
+                                    `post sell order filled changing position`
+                                )
+                                this._sendSignalToParent(
+                                    'socket',
+                                    `${this._bot._id}`,
+                                    {
+                                        type: 'position',
+                                        position: this._position
+                                    }
+                                )
+                                Logger.info(
+                                    `post sell order filled position bot`
+                                )
+                            }
                         }
+
+                        const updateSequence = { positionSequence: 1 }
+                        const updateValue = !order.isExit
+                            ? botSession.positionSequence === 1
+                                ? {
+                                      [`actualEntryPrice.${this._bot.order}`]: average
+                                  }
+                                : {}
+                            : { [`exitPrice.${this._bot.order}`]: average }
+                        const session = await BotConfigSessionSchema.findByIdAndUpdate(
+                            { _id: _botSessionId },
+                            { $inc: updateSequence, $set: updateValue },
+                            { new: true }
+                        )
+                        Logger.info(
+                            `Session limit order filled order sequence ${session.orderSequence}`
+                        )
+                        Logger.info(
+                            `Session limit order filled position sequence ${session.positionSequence}`
+                        )
+                        this._sendSignalToParent('socket', `${this._bot._id}`, {
+                            type: 'session',
+                            session
+                        })
+                        Logger.info(
+                            `post updated session limit order filled position bot`
+                        )
+                        this._sendSignalToParent('socket', `${this._bot._id}`, {
+                            type: 'update',
+                            bot: this._bot
+                        })
                     }
-
-                    const updateSequence = { positionSequence: 1 }
-                    const updateValue = !order.isExit
-                        ? botSession.positionSequence === 1
-                            ? {
-                                  [`actualEntryPrice.${this._bot.order}`]: average
-                              }
-                            : {}
-                        : { [`exitPrice.${this._bot.order}`]: average }
-                    const session = await BotConfigSessionSchema.findByIdAndUpdate(
-                        { _id: _botSessionId },
-                        { $inc: updateSequence, $set: updateValue },
-                        { new: true }
-                    )
-                    Logger.info(
-                        `Session limit order filled order sequence ${session.orderSequence}`
-                    )
-                    Logger.info(
-                        `Session limit order filled position sequence ${session.positionSequence}`
-                    )
-                    this._sendSignalToParent('socket', `${this._bot._id}`, {
-                        type: 'session',
-                        session
-                    })
-                    Logger.info(
-                        `post updated session limit order filled position bot`
-                    )
-                    this._sendSignalToParent('socket', `${this._bot._id}`, {
-                        type: 'update',
-                        bot: this._bot
-                    })
                 }
-            }
 
-            this._sendSignalToParent('socket', `${this._bot._id}`, {
-                type: 'order',
-                order: updatedOrder
-            })
+                this._sendSignalToParent('socket', `${this._bot._id}`, {
+                    type: 'order',
+                    order: updatedOrder
+                })
+            }, 8000)
         } catch (e) {
             Logger.error('Error saving order on change', e)
         }
