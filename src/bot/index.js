@@ -251,6 +251,34 @@ class Bot {
                     leverage,
                     botOrder.includes('l') ? POSITION_LONG : POSITION_SHORT
                 )
+                //create order here and update it later
+                let order
+                if (!isMarket)
+                    order = await new OrderSchema({
+                        _userId,
+                        _botId: this._botId,
+                        _botConfigId,
+                        _botSessionId,
+                        _accountId: _id,
+                        _botIdSimple,
+                        _accountIdSimple,
+                        _botConfigIdSimple,
+                        _botSessionIdSimple,
+                        side,
+                        orderPrice: price,
+                        amount,
+                        botOrder,
+                        totalOrderQuantity: amount,
+                        type: isMarket ? ORDER_TYPE_MARKET : ORDER_TYPE_LIMIT,
+                        exchange: exchange,
+                        feeType: isMarket ? FEE_TYPE_TAKER : FEE_TYPE_MAKER,
+                        symbol: symbol,
+                        pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
+                        isExit: positionOpen,
+                        leverage: leverage,
+                        accountName: this._account.accountName,
+                        orderSequence: botSession.orderSequence
+                    }).save()
                 const orderDetails = isMarket
                     ? await this._trader.createMarketOrder(side, amount)
                     : await this._trader.createLimitOrder(side, amount, price)
@@ -264,42 +292,63 @@ class Bot {
                 const botSession = await BotConfigSessionSchema.findById({
                     _id: _botSessionId
                 })
-                const order = await new OrderSchema({
-                    _userId,
-                    _botId: this._botId,
-                    _botConfigId,
-                    _botSessionId,
-                    _accountId: _id,
-                    _botIdSimple,
-                    _accountIdSimple,
-                    _botConfigIdSimple,
-                    _botSessionIdSimple,
-                    _orderId: orderDetails.id,
-                    timestamp: orderDetails.datetime,
-                    side,
-                    price: orderDetails.average,
-                    orderPrice: price,
-                    amount,
-                    cost: new BigNumber(orderDetails.cost)
-                        .dividedBy(100000000)
-                        .toFixed(8),
-                    status: orderDetails.info.ordStatus,
-                    fees,
-                    botOrder,
-                    totalOrderQuantity: amount,
-                    type: isMarket ? ORDER_TYPE_MARKET : ORDER_TYPE_LIMIT,
-                    filledQuantity: orderDetails.filled,
-                    remainQuantity: orderDetails.remaining,
-                    exchange: exchange,
-                    feeType: isMarket ? FEE_TYPE_TAKER : FEE_TYPE_MAKER,
-                    symbol: symbol,
-                    pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
-                    isExit: positionOpen,
-                    leverage: leverage,
-                    accountName: this._account.accountName,
-                    orderSequence: botSession.orderSequence,
-                    orderOpen: orderDetails.remaining !== 0
-                }).save()
+                if (!isMarket)
+                    order = await OrderSchema.findByIdAndUpdate(
+                        { _id: order._id },
+                        {
+                            $set: {
+                                orderOpen: orderDetails.remaining !== 0,
+                                _orderId: orderDetails.id,
+                                timestamp: orderDetails.datetime,
+                                cost: new BigNumber(orderDetails.cost)
+                                    .dividedBy(100000000)
+                                    .toFixed(8),
+                                status: orderDetails.info.ordStatus,
+                                filledQuantity: orderDetails.filled,
+                                remainQuantity: orderDetails.remaining,
+                                price: orderDetails.average,
+                                fees
+                            }
+                        },
+                        { new: true }
+                    )
+                else
+                    order = await new OrderSchema({
+                        _userId,
+                        _botId: this._botId,
+                        _botConfigId,
+                        _botSessionId,
+                        _accountId: _id,
+                        _botIdSimple,
+                        _accountIdSimple,
+                        _botConfigIdSimple,
+                        _botSessionIdSimple,
+                        _orderId: orderDetails.id,
+                        timestamp: orderDetails.datetime,
+                        side,
+                        price: orderDetails.average,
+                        orderPrice: price,
+                        amount,
+                        cost: new BigNumber(orderDetails.cost)
+                            .dividedBy(100000000)
+                            .toFixed(8),
+                        status: orderDetails.info.ordStatus,
+                        fees,
+                        botOrder,
+                        totalOrderQuantity: amount,
+                        type: isMarket ? ORDER_TYPE_MARKET : ORDER_TYPE_LIMIT,
+                        filledQuantity: orderDetails.filled,
+                        remainQuantity: orderDetails.remaining,
+                        exchange: exchange,
+                        feeType: isMarket ? FEE_TYPE_TAKER : FEE_TYPE_MAKER,
+                        symbol: symbol,
+                        pair: MAP_WS_PAIR_TO_SYMBOL[symbol],
+                        isExit: positionOpen,
+                        leverage: leverage,
+                        accountName: this._account.accountName,
+                        orderSequence: botSession.orderSequence,
+                        orderOpen: orderDetails.remaining !== 0
+                    }).save()
                 Logger.info(`post local order save`)
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
                     type: 'order',

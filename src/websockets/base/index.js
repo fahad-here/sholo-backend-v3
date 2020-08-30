@@ -8,7 +8,7 @@ class BaseWS {
         this.options = options
         this.ws = ws
         this.pair = pair
-        if(id === BITMEX_EXCHANGE){
+        if (id === BITMEX_EXCHANGE) {
             this.ws.on('initialize', () => {
                 console.log(`${id} websocket initialised`)
             })
