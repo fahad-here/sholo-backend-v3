@@ -116,7 +116,8 @@ const BotSchema = new mongoose.Schema({
         type: String,
         enum: [...ALLOWED_MARGIN_TYPES]
     },
-    priceRReached: { type: Boolean, default: false }
+    priceRReached: { type: Boolean, default: false },
+    stopped: { type: Boolean, default: false }
 })
 BotSchema.plugin(AutoIncrement, {
     id: 'botCounter',

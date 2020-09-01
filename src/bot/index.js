@@ -503,7 +503,7 @@ class Bot {
 
     async onPriceRReachedSignal(price, timestamp) {
         Logger.info(`onPriceRReachedSignal`)
-        if (!this._position && !this._inProgress) {
+        if (!this._position && !this._inProgress && !this._bot.priceRReached) {
             //send email notification
             this._inProgress = true
             this._bot = await BotSchema.findByIdAndUpdate(
@@ -1101,6 +1101,36 @@ class Bot {
         pubClient.publish(this._botId, data)
     }
 
+    async _checkAndUpdateBotConfig(botConfig, currentStoppedBot) {
+        const otherBot = await BotSchema.findOne({
+            _id: { $ne: currentStoppedBot._id },
+            _botConfigId: botConfig._id
+        })
+        if (otherBot.stopped) {
+            await BotConfigSessionSchema.findByIdAndUpdate(
+                {
+                    _id: botConfig.currentSession
+                },
+                {
+                    $set: {
+                        active: false
+                    }
+                }
+            )
+            await BotConfigSchema.findByIdAndUpdate(
+                {
+                    _id: botConfig._id
+                },
+                {
+                    $set: {
+                        active: false,
+                        currentSession: null
+                    }
+                }
+            )
+        }
+    }
+
     async stopBot() {
         try {
             Logger.info(`stopping bot`)
@@ -1109,7 +1139,7 @@ class Bot {
                     _id: this._botId,
                     _userId: this._userId
                 },
-                { $set: { active: false } },
+                { $set: { active: false, stopped: true } },
                 { new: true }
             )
             const botConfig = await BotConfigSchema.findById({
@@ -1152,7 +1182,7 @@ class Bot {
                     balanceToAdd = new BigNumber(this._position.margin).toFixed(
                         8
                     )
-                    await BotSchema.findByIdAndUpdate(
+                    this._bot = await BotSchema.findByIdAndUpdate(
                         { _id: this._bot._id },
                         {
                             $set: {
@@ -1162,9 +1192,11 @@ class Bot {
                                     .plus(balanceToAdd)
                                     .toFixed(8)
                             }
-                        }
+                        },
+                        { new: true }
                     )
                     await this._trader.closeOpenPositions()
+                    await this._checkAndUpdateBotConfig(botConfig, this._bot)
                 } else {
                     // if orders are open close them here
                     Logger.info('Position closed ' + this._bot.positionOpen)
@@ -1189,7 +1221,7 @@ class Bot {
                                 .toFixed(8)
                         }
                     }
-                    await BotSchema.findByIdAndUpdate(
+                    this._bot = await BotSchema.findByIdAndUpdate(
                         { _id: this._bot._id },
                         {
                             $set: {
@@ -1199,8 +1231,10 @@ class Bot {
                                     .plus(balanceToAdd)
                                     .toFixed(8)
                             }
-                        }
+                        },
+                        { new: true }
                     )
+                    await this._checkAndUpdateBotConfig(botConfig, this._bot)
                 }
             } else {
                 Logger.info(

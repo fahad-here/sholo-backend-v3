@@ -134,17 +134,17 @@ class BotCoordinator {
             BotSchema.find({})
                 .then((bots) => {
                     // Logger.info(` bots length ${bots.length}`)
-                    let enabledAndInactiveBots = bots.filter(
-                        (bot) => bot.enabled && !bot.active
+                    let enabledAndInactiveAndNotStoppedBots = bots.filter(
+                        (bot) => bot.enabled && !bot.active && !bot.stopped
                     )
                     let disabledAndActiveBots = bots.filter(
                         (bot) => !bot.enabled && bot.active
                     )
-                    if (enabledAndInactiveBots.length > 0) {
+                    if (enabledAndInactiveAndNotStoppedBots.length > 0) {
                         Logger.info(
-                            `Enabled and inactive bots: ${enabledAndInactiveBots.length}`
+                            `Enabled, inactive and not stopped bots: ${enabledAndInactiveAndNotStoppedBots.length}`
                         )
-                        enabledAndInactiveBots.map((bot) => {
+                        enabledAndInactiveAndNotStoppedBots.map((bot) => {
                             try {
                                 this.startBot(bot)
                             } catch (err) {

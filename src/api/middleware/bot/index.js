@@ -178,7 +178,9 @@ const _createBot = async (
                     realisedPnl: 0,
                     unrealisedPnl: 0,
                     name: `${name} ${order}`,
-                    marginType
+                    marginType,
+                    stopped: paused ? existingBot.stopped : false,
+                    priceRReached: paused ? existingBot.priceRReached : false
                 }
             },
             { upsert: true, new: true }
