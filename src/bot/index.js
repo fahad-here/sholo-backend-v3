@@ -1109,7 +1109,7 @@ class Bot {
         if (otherBot.stopped) {
             await BotConfigSessionSchema.findByIdAndUpdate(
                 {
-                    _id: botConfig.currentSession
+                    _id: currentStoppedBot._botSessionId
                 },
                 {
                     $set: {
