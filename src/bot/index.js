@@ -798,17 +798,16 @@ class Bot {
                             bot: this._bot
                         })
                     }
+                    this._inProgress = false
+                    this._sendSignalToParent('socket', `${this._bot._id}`, {
+                        type: 'order',
+                        order: updatedOrder
+                    })
                 } else
                     Logger.info(
                         `no order found for order id: ${_orderId}, trying again`
                     )
             } while (!order)
-
-            this._inProgress = false
-            this._sendSignalToParent('socket', `${this._bot._id}`, {
-                type: 'order',
-                order: updatedOrder
-            })
         } catch (e) {
             Logger.error('Error saving order on change', e)
         }
