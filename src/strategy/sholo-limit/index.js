@@ -25,8 +25,8 @@ class SholoLimit extends Strategy {
         Logger.info('inside strategy')
     }
 
-    async getSessionOrderSequence() {
-        return this._session.orderSequence
+    async getBotOrderSequence() {
+        return this._bot.orderSequence
     }
 
     async longStrategy() {
@@ -41,10 +41,10 @@ class SholoLimit extends Strategy {
             positionOpen,
             orderOpen
         } = this._bot
-        const orderSequence = await this.getSessionOrderSequence()
-        if (orderSequence === 1 || orderSequence === 2) {
+        const orderSequence = await this.getBotOrderSequence()
+        if (orderSequence === 1) {
             Logger.info(
-                `long: order sequence = 1 || 2, orderSequence = ${orderSequence}`
+                `long: order sequence = 1 , orderSequence = ${orderSequence}`
             )
             let shouldEnter =
                 new BigNumber(this.price).isLessThanOrEqualTo(
@@ -60,9 +60,9 @@ class SholoLimit extends Strategy {
                 if (!positionOpen && !orderOpen)
                     this.onBuySignal(this.price, this.timestamp, true)
             }
-        } else if (orderSequence === 3 || orderSequence === 4) {
+        } else if (orderSequence === 2) {
             Logger.info(
-                `long: order sequence = 3 || 4, orderSequence = ${orderSequence}`
+                `long: order sequence = 2, orderSequence = ${orderSequence}`
             )
             if (positionOpen && !orderOpen) {
                 Logger.info(
@@ -74,7 +74,7 @@ class SholoLimit extends Strategy {
                 )
             }
         } else {
-            Logger.info(`long: order sequence > 4, current price ${this.price}`)
+            Logger.info(`long: order sequence > 2, current price ${this.price}`)
             // if(!orderOpen){
             //     if(positionOpen){
 
@@ -195,10 +195,10 @@ class SholoLimit extends Strategy {
             positionOpen,
             orderOpen
         } = this._bot
-        const orderSequence = await this.getSessionOrderSequence()
-        if (orderSequence === 1 || orderSequence === 2) {
+        const orderSequence = await this.getBotOrderSequence()
+        if (orderSequence === 1) {
             Logger.info(
-                `short: order sequence = 1 || 2, orderSequence = ${orderSequence}`
+                `short: order sequence = 1 , orderSequence = ${orderSequence}`
             )
             let shouldEnter =
                 new BigNumber(this.price).isLessThanOrEqualTo(
@@ -213,9 +213,9 @@ class SholoLimit extends Strategy {
                 )
                 this.onBuySignal(this.price, this.timestamp, true)
             }
-        } else if (orderSequence === 3 || orderSequence === 4) {
+        } else if (orderSequence === 2) {
             Logger.info(
-                `short: order sequence = 3 || 4, orderSequence = ${orderSequence}`
+                `short: order sequence = 2, orderSequence = ${orderSequence}`
             )
             if (positionOpen && !orderOpen) {
                 Logger.info(
@@ -228,7 +228,7 @@ class SholoLimit extends Strategy {
             }
         } else {
             Logger.info(
-                `short: order sequence > 4, current price ${this.price}`
+                `short: order sequence > 2, current price ${this.price}`
             )
             if (
                 positionOpen &&
