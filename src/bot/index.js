@@ -503,7 +503,12 @@ class Bot {
 
     async onPriceRReachedSignal(price, timestamp) {
         Logger.info(`onPriceRReachedSignal`)
-        if (!this._position && !this._inProgress && !this._bot.priceRReached) {
+        if (
+            !this._position &&
+            !this._inProgress &&
+            !this._bot.priceRReached &&
+            !this.bot.orderOpen
+        ) {
             //send email notification
             this._inProgress = true
             this._bot = await BotSchema.findByIdAndUpdate(
@@ -568,6 +573,7 @@ class Bot {
                 average
             })
             setTimeout(async () => {
+                this._inProgress = true
                 let order = await OrderSchema.findOne({ _orderId, pair })
                 let updatedOrder
                 if (order) {
@@ -684,6 +690,15 @@ class Bot {
                             this._position = await new PositionSchema(
                                 positionData
                             ).save()
+                            this._bot = await BotSchema.findByIdAndUpdate(
+                                { _id: this._bot._id },
+                                {
+                                    $set: {
+                                        positionOpen: true
+                                    }
+                                },
+                                { new: true }
+                            )
                             this._positionId = this._position._id
                             Logger.info(`setting position`, this._position._doc)
                             this._sendSignalToParent(
@@ -781,7 +796,7 @@ class Bot {
                         })
                     }
                 }
-
+                this._inProgress = false
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
                     type: 'order',
                     order: updatedOrder
@@ -875,7 +890,7 @@ class Bot {
                     { $set: changedSet },
                     { new: true }
                 )
-                Logger.info(`setting positionOpen : ${isOpen}`)
+                Logger.info(`Position: setting positionOpen : ${isOpen}`)
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
                     type: 'update',
                     bot: this._bot
@@ -937,7 +952,7 @@ class Bot {
                     }
                 )
 
-                Logger.info(`setting positionOpen : ${isOpen}`)
+                Logger.info(`Position: setting positionOpen : ${isOpen}`)
                 Logger.info(`setting position open`)
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
                     type: 'update',
