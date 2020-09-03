@@ -108,6 +108,9 @@ const OrderSchema = new Schema(
         },
         orderSequence: {
             type: Number
+        },
+        individuialSequence: {
+            type: Number
         }
     },
     {

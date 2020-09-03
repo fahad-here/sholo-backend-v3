@@ -301,7 +301,8 @@ class Bot {
                     leverage: leverage,
                     accountName: this._account.accountName,
                     orderSequence: botSession.orderSequence,
-                    orderOpen: orderDetails.remaining !== 0
+                    orderOpen: orderDetails.remaining !== 0,
+                    individuialSequence: this._bot.orderSequence
                 }).save()
                 Logger.info(`post local order save`)
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
@@ -311,6 +312,7 @@ class Bot {
                 this._bot = await BotSchema.findByIdAndUpdate(
                     { _id: this._botId },
                     {
+                        $inc: { orderSequence: 1 },
                         $set: {
                             balance: isBuy
                                 ? new BigNumber(this._bot.balance)
