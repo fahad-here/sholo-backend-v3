@@ -582,9 +582,10 @@ class Bot {
                 let updatedOrder
                 if (order) {
                     let cost = new BigNumber(totalOrderQuantity)
-                        .dividedBy(average)
+                        .dividedBy(average!==null ? average : order.orderPrice)
                         .multipliedBy(this._bot.leverage)
                         .toFixed(8)
+
                     let fees = new BigNumber(cost)
                         .multipliedBy(
                             order
