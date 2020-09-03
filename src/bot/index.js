@@ -574,9 +574,10 @@ class Bot {
                 remainQuantity,
                 average
             })
-            setTimeout(async () => {
-                this._inProgress = true
-                let order = await OrderSchema.findOne({ _orderId, pair })
+            let order
+            this._inProgress = true
+            do {
+                order = await OrderSchema.findOne({ _orderId, pair })
                 let updatedOrder
                 if (order) {
                     let cost = new BigNumber(totalOrderQuantity)
@@ -797,13 +798,17 @@ class Bot {
                             bot: this._bot
                         })
                     }
-                }
-                this._inProgress = false
-                this._sendSignalToParent('socket', `${this._bot._id}`, {
-                    type: 'order',
-                    order: updatedOrder
-                })
-            }, 8000)
+                } else
+                    Logger.info(
+                        `no order found for order id: ${_orderId}, trying again`
+                    )
+            } while (!order)
+
+            this._inProgress = false
+            this._sendSignalToParent('socket', `${this._bot._id}`, {
+                type: 'order',
+                order: updatedOrder
+            })
         } catch (e) {
             Logger.error('Error saving order on change', e)
         }
