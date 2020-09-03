@@ -1,4 +1,4 @@
-module.exports = (name, whatPrice, price, liquidation, account, bot) => {
+module.exports = (name, whatPrice, price, liquidation, account, botName) => {
     return `
         <p>
         Hello ${name},
@@ -10,6 +10,6 @@ module.exports = (name, whatPrice, price, liquidation, account, bot) => {
                   account.accountName
                 : ''
         }</p>
-        <p>This is an auto-generated email sent via the bot: ${bot.name}.</p>
+        <p>This is an auto-generated email sent via the bot: ${botName}.</p>
     `
 }

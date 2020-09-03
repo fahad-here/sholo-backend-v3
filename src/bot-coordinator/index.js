@@ -77,7 +77,8 @@ class BotCoordinator {
                         bot,
                         price,
                         liquidated,
-                        whatPrice
+                        whatPrice,
+                        botName
                     } = message
                     const user = await UserSchema.findById({
                         _id: account._userId
@@ -93,7 +94,8 @@ class BotCoordinator {
                                 whatPrice,
                                 price,
                                 liquidated,
-                                account
+                                account,
+                                botName
                             )
                         )
                     break

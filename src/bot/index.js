@@ -257,6 +257,7 @@ class Bot {
                     ? await this._trader.createMarketOrder(side, amount)
                     : await this._trader.createLimitOrder(side, amount, price)
                 Logger.info(`post order`)
+                this._currentOrderId = orderDetails.id
                 const { fees, difference } = await this._calculateFees(
                     preOrderBalance,
                     isMarket
@@ -429,8 +430,6 @@ class Bot {
             } else {
                 Logger.info(`market is not liquid enough`)
             }
-            this._inProgress = false
-            Logger.info(`post everything progress: ${this._inProgress}`)
         } catch (e) {
             Logger.error('error in buy sell signal', e)
             this._inProgress = false
@@ -493,7 +492,8 @@ class Bot {
                     bot: this._bot,
                     price,
                     liquidated: true,
-                    whatPrice: 'liquidation price'
+                    whatPrice: 'liquidation price',
+                    botName: this._bot.name
                 })
                 this._position = null
                 await this.stopBot()
@@ -523,7 +523,8 @@ class Bot {
                 bot: this._bot,
                 price,
                 liquidated: false,
-                whatPrice: 'Price R'
+                whatPrice: 'Price R',
+                botName: this._bot.name
             })
             await this.stopBot()
         }
@@ -798,7 +799,8 @@ class Bot {
                             bot: this._bot
                         })
                     }
-                    this._inProgress = false
+                    if (_orderId === this._currentOrderId)
+                        this._inProgress = false
                     this._sendSignalToParent('socket', `${this._bot._id}`, {
                         type: 'order',
                         order: updatedOrder
