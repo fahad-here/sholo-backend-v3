@@ -78,7 +78,8 @@ class BitmexWS extends BaseWS {
                         new BigNumber(positionData.unrealisedPnl)
                             .dividedBy(100000000)
                             .toFixed(8),
-                        positionData.unrealisedPnlPcnt
+                        positionData.unrealisedPnlPcnt,
+                        positionData.posState === 'Liquidation'
                     )
         })
     }

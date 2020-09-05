@@ -472,15 +472,28 @@ class Bot {
         try {
             if (this._position && !this._inProgress) {
                 Logger.info(`liquidated signal `)
+                this._position = null
                 const changedSet = {
                     exitPrice: price,
                     isOpen: false,
                     endedAt: timestamp,
                     liquidated: true
                 }
-                this._position = await PositionSchema.findByIdAndUpdate(
-                    { _id: this._position._id },
+                const posId = this._position._id
+                await PositionSchema.findByIdAndUpdate(
+                    { _id: posId },
                     { $set: changedSet },
+                    { new: true }
+                )
+                this._bot = await BotSchema.findByIdAndUpdate(
+                    { _id: this._bot._id },
+                    {
+                        $set: {
+                            positionOpen: false,
+                            liquidated: true,
+                            balance: 0
+                        }
+                    },
                     { new: true }
                 )
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
@@ -495,7 +508,6 @@ class Bot {
                     whatPrice: 'liquidation price',
                     botName: this._bot.name
                 })
-                this._position = null
                 await this.stopBot()
             }
         } catch (e) {
@@ -582,7 +594,9 @@ class Bot {
                 let updatedOrder
                 if (order) {
                     let cost = new BigNumber(totalOrderQuantity)
-                        .dividedBy(average!==null ? average : order.orderPrice)
+                        .dividedBy(
+                            average !== null ? average : order.orderPrice
+                        )
                         .multipliedBy(this._bot.leverage)
                         .toFixed(8)
 
@@ -799,6 +813,25 @@ class Bot {
                             type: 'update',
                             bot: this._bot
                         })
+                    } else if (status === 'Canceled' && !this._bot.liquidated) {
+                        let cost = new BigNumber(totalOrderQuantity)
+                            .dividedBy(
+                                average !== null ? average : order.orderPrice
+                            )
+                            .dividedBy(order.leverage)
+                            .toFixed(8)
+                        this._bot = await BotSchema.findByIdAndUpdate(
+                            { _id: this._bot._id },
+                            {
+                                $set: {
+                                    orderOpen: false,
+                                    balance: new BigNumber(this._bot.balance)
+                                        .plus(cost)
+                                        .toFixed(8)
+                                }
+                            },
+                            { new: true }
+                        )
                     }
                     if (_orderId === this._currentOrderId)
                         this._inProgress = false
@@ -826,7 +859,8 @@ class Bot {
         bankruptPrice,
         realisedPnl,
         unrealisedPnl,
-        unrealisedPnlPercent
+        unrealisedPnlPercent,
+        isLiquidated
     ) {
         let changed = false
         let changedSet = {}
@@ -848,6 +882,7 @@ class Bot {
                 //         unrealisedPnl
                 //     }
                 // )
+
                 if (this._position.margin !== margin) {
                     this._position.margin = margin
                     changedSet = {
@@ -904,6 +939,13 @@ class Bot {
                     type: 'update',
                     bot: this._bot
                 })
+                if (isLiquidated) {
+                    Logger.info(`Position: Liquidated: is Pos Open${isOpen}`)
+                    this.onLiquidatedSignal(
+                        this._bot.liquidationPrice,
+                        new Date.now()
+                    )
+                }
             } else {
                 //position does not exist and in progress
                 // Logger.info(
@@ -1046,7 +1088,8 @@ class Bot {
                 bankruptPrice,
                 realisedPnl,
                 unrealisedPnl,
-                unrealisedPnlPercent
+                unrealisedPnlPercent,
+                isLiquidated
             ) =>
                 this._onPositionChangeEmitter(
                     id,
@@ -1058,7 +1101,8 @@ class Bot {
                     bankruptPrice,
                     realisedPnl,
                     unrealisedPnl,
-                    unrealisedPnlPercent
+                    unrealisedPnlPercent,
+                    isLiquidated
                 )
         )
         this._ws.addOrderTicker()
@@ -1252,7 +1296,9 @@ class Bot {
                                 positionOpen: false,
                                 orderOpen: false,
                                 balance: new BigNumber(this._bot.balance)
-                                    .plus(balanceToAdd)
+                                    .plus(
+                                        this._bot.liquidated ? 0 : balanceToAdd
+                                    )
                                     .toFixed(8)
                             }
                         },
