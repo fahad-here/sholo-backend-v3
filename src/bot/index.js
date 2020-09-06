@@ -240,7 +240,7 @@ class Bot {
             Logger.info(`${this._bot._id} ${side}`)
             Logger.info(`amount : ${amount}`)
             Logger.info(`margin ${margin}`)
-            Logger.info(`pre order bot balance: ${this._bot.balance}`)
+            Logger.info(`BALANCE: pre order bot balance: ${this._bot.balance}`)
             const liquidityCheck = isMarket
                 ? await this._checkLiquidity(amount, price)
                 : true
@@ -353,7 +353,9 @@ class Bot {
                     bot: this._bot
                 })
                 Logger.info(`post updated bot`)
-                Logger.info(`post order bot balance ${this._bot.balance}`)
+                Logger.info(
+                    `BALANCE: post order bot balance ${this._bot.balance}`
+                )
                 const newBal = await this._trader.getBalance()
                 this._account = await AccountSchema.findByIdAndUpdate(
                     { _id: this._account._id },
@@ -653,6 +655,14 @@ class Bot {
                             .dividedBy(average)
                             .dividedBy(order.leverage)
                             .toFixed(8)
+                        Logger.info(
+                            `BALANCE: total order qnt: ${totalOrderQuantity}`
+                        )
+                        Logger.info(`BALANCE: average: ${average}`)
+                        Logger.info(`BALANCE: leverage: ${order.leverage}`)
+                        Logger.info(
+                            `BALANCE: pre order filled change cost cal: ${cost}`
+                        )
                         this._bot = await BotSchema.findByIdAndUpdate(
                             { _id: this._bot._id },
                             {
@@ -673,7 +683,8 @@ class Bot {
                             `bot post order update ` + this._bot.orderOpen
                         )
                         Logger.info(
-                            `bot balance order update ` + this._bot.balance
+                            `BALANCE: bot balance order update ` +
+                                this._bot.balance
                         )
 
                         const { _id } = this._account
@@ -820,6 +831,9 @@ class Bot {
                             )
                             .dividedBy(order.leverage)
                             .toFixed(8)
+                        Logger.info(
+                            `BALANCE: pre order cancelled change cost cal: ${cost}`
+                        )
                         this._bot = await BotSchema.findByIdAndUpdate(
                             { _id: this._bot._id },
                             {
@@ -831,6 +845,9 @@ class Bot {
                                 }
                             },
                             { new: true }
+                        )
+                        Logger.info(
+                            `BALANCE: order cancelled balance : ${this._bot.balance}`
                         )
                     }
                     if (_orderId === this._currentOrderId)
@@ -976,7 +993,7 @@ class Bot {
                     //     liquidationPrice,
                     //     bankruptPrice,
                     //     realisedPnl,
-                    //     unrealisedPnl
+                    //     unrealisedPn
                     // }
                 )
                 changedSet = {
@@ -986,9 +1003,13 @@ class Bot {
                     unrealisedPnl
                 }
                 changed = true
+                Logger.info(
+                    `BALANCE: position unrealised PNL: ${this._position.unrealisedPnl}`
+                )
                 const botRealisedPnl = new BigNumber(this._bot.realisedPnl)
                     .plus(this._position.unrealisedPnl)
                     .toFixed(8)
+                Logger.info(`BALANCE: bot realised PNL cal: ${botRealisedPnl}`)
                 this._bot = await BotSchema.findByIdAndUpdate(
                     { _id: this._bot._id },
                     {
@@ -1002,7 +1023,9 @@ class Bot {
                         }
                     }
                 )
-
+                Logger.info(
+                    `BALANCE: post bot realised PNL balance: ${this._bot.balance}`
+                )
                 Logger.info(`Position: setting positionOpen : ${isOpen}`)
                 Logger.info(`setting position open`)
                 this._sendSignalToParent('socket', `${this._bot._id}`, {
@@ -1250,6 +1273,9 @@ class Bot {
                     balanceToAdd = new BigNumber(this._position.margin).toFixed(
                         8
                     )
+                    Logger.info(
+                        `BALANCE: bot balance to add cal: ${balanceToAdd}`
+                    )
                     this._bot = await BotSchema.findByIdAndUpdate(
                         { _id: this._bot._id },
                         {
@@ -1262,6 +1288,9 @@ class Bot {
                             }
                         },
                         { new: true }
+                    )
+                    Logger.info(
+                        `BALANCE: bot balance to add balance: ${this._bot.balance}`
                     )
                     await this._trader.closeOpenPositions()
                     await this._checkAndUpdateBotConfig(botConfig, this._bot)
@@ -1289,6 +1318,9 @@ class Bot {
                                 .toFixed(8)
                         }
                     }
+                    Logger.info(
+                        `BALANCE: bot balance to add cal: ${balanceToAdd}`
+                    )
                     this._bot = await BotSchema.findByIdAndUpdate(
                         { _id: this._bot._id },
                         {
@@ -1303,6 +1335,9 @@ class Bot {
                             }
                         },
                         { new: true }
+                    )
+                    Logger.info(
+                        `BALANCE: bot balance to add balance: ${this._bot.balance}`
                     )
                     await this._checkAndUpdateBotConfig(botConfig, this._bot)
                 }
