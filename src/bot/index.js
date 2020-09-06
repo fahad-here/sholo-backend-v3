@@ -647,7 +647,6 @@ class Bot {
                     })
                     if (
                         (status === 'Filled' ||
-                            remainQuantity === 0 ||
                             status === 'PartiallyFilled') &&
                         order.orderOpen
                     ) {
