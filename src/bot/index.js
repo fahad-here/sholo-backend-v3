@@ -646,16 +646,18 @@ class Bot {
                         _id: _botSessionId
                     })
                     if (
-                        (status === 'Filled' ||
-                            status === 'PartiallyFilled') &&
+                        (status === 'Filled' || status === 'PartiallyFilled') &&
                         order.orderOpen
                     ) {
-                        let cost = new BigNumber(totalOrderQuantity)
+                        let cost = new BigNumber(filledQuantity)
                             .dividedBy(average)
                             .dividedBy(order.leverage)
                             .toFixed(8)
                         Logger.info(
                             `BALANCE: total order qnt: ${totalOrderQuantity}`
+                        )
+                        Logger.info(
+                            `BALANCE: filled order qnt: ${filledQuantity}`
                         )
                         Logger.info(`BALANCE: average: ${average}`)
                         Logger.info(`BALANCE: leverage: ${order.leverage}`)
