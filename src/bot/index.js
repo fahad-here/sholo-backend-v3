@@ -649,12 +649,40 @@ class Bot {
                         (status === 'Filled' || status === 'PartiallyFilled') &&
                         order.orderOpen
                     ) {
-                        let cost = new BigNumber(filledQuantity)
+                        //this is to properly calculate cost of filled quantity if orders are partially filled
+                        let calQuantity = 0
+                        if (order.status === 'New' && status === 'Filled') {
+                            calQuantity = filledQuantity
+                            Logger.info(
+                                `BALANCE: Previous New And current Filled: ${calQuantity}`
+                            )
+                        } else if (
+                            order.status === 'PartiallyFilled' &&
+                            status === 'Filled'
+                        ) {
+                            calQuantity = order.filledQuantity
+                            Logger.info(
+                                `BALANCE: Previous Partially Filled And Current Filled: ${calQuantity}`
+                            )
+                        } else {
+                            calQuantity = filledQuantity - order.filledQuantity
+                            Logger.info(
+                                `BALANCE: currently Partially Filled: ${calQuantity}`
+                            )
+                        }
+
+                        let cost = new BigNumber(calQuantity)
                             .dividedBy(average)
                             .dividedBy(order.leverage)
                             .toFixed(8)
                         Logger.info(
                             `BALANCE: total order qnt: ${totalOrderQuantity}`
+                        )
+                        Logger.info(
+                            `BALANCE: calulated quantity: ${calQuantity}`
+                        )
+                        Logger.info(
+                            `BALANCE: calulated quantity: ${calQuantity}`
                         )
                         Logger.info(
                             `BALANCE: filled order qnt: ${filledQuantity}`
