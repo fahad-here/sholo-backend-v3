@@ -225,12 +225,17 @@ class Bot {
                 orderOpen
             } = this._bot
             const { _id, accountType } = this._account
+            Logger.info(` Signal Position: ${this._position === null}`)
+            Logger.info(` Signal Position: Pos Open: ${positionOpen}`)
+            Logger.info(
+                ` Signal Position: Current Pos: ${this._position === null}`
+            )
             const side =
                 accountType === POSITION_SHORT
-                    ? positionOpen
+                    ? this._position === null
                         ? BUY
                         : SELL
-                    : positionOpen
+                    : this._position === null
                     ? SELL
                     : BUY
             //calculate fees before placing order
