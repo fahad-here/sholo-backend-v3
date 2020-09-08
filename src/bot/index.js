@@ -232,10 +232,10 @@ class Bot {
             )
             const side =
                 accountType === POSITION_SHORT
-                    ? this._position === null
+                    ? this._position !== null
                         ? BUY
                         : SELL
-                    : this._position === null
+                    : this._position !== null
                     ? SELL
                     : BUY
             //calculate fees before placing order
