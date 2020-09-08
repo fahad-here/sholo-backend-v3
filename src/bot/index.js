@@ -63,8 +63,8 @@ class Bot {
             onSellSignal: (price, timeStamp, isMarket) => {
                 this.onSellSignal(price, timeStamp, isMarket)
             },
-            onLiquidatedSignal: (price, timeStamp) => {
-                this.onLiquidatedSignal(price, timeStamp)
+            onLiquidatedSignal: (price, timeStamp, position) => {
+                this.onLiquidatedSignal(price, timeStamp, position)
             },
             onPriceRReachedSignal: (price, timeStamp) => {
                 this.onPriceRReachedSignal(price, timeStamp)
@@ -440,7 +440,7 @@ class Bot {
         } catch (e) {
             Logger.error('error in buy sell signal', e)
             this._inProgress = false
-            Logger.error('post error progress ' + this._inProgress)
+            Logger.error('post error progress: ' + this._inProgress)
         }
     }
 
@@ -475,9 +475,13 @@ class Bot {
         }
     }
 
-    async onLiquidatedSignal(price, timestamp) {
+    async onLiquidatedSignal(price, timestamp, currentPosition) {
         try {
-            Logger.info(`liquidated signal `)
+            Logger.info(`liquidated signal: price: ${price}`)
+            Logger.info(`liquidated signal: timestamp: ${timestamp} `)
+            Logger.info(
+                `liquidated signal: currentPos Id: ${currentPosition._id}`
+            )
             this._position = null
             const changedSet = {
                 exitPrice: price,
@@ -485,8 +489,9 @@ class Bot {
                 endedAt: timestamp,
                 liquidated: true
             }
-            const posId = this._position._id
-            await PositionSchema.findByIdAndUpdate(
+
+            const posId = currentPosition._id
+            const updatedPos = await PositionSchema.findByIdAndUpdate(
                 { _id: posId },
                 { $set: changedSet },
                 { new: true }
@@ -504,7 +509,7 @@ class Bot {
             )
             this._sendSignalToParent('socket', `${this._bot._id}`, {
                 type: 'position',
-                position: this._position
+                position: updatedPos
             })
             this._sendSignalToParent('email', `${this._bot._id}`, {
                 account: this._account,
@@ -595,6 +600,10 @@ class Bot {
             let order
             this._inProgress = true
             do {
+                if (status === 'Rejected') {
+                    this._inProgress = false
+                    break
+                }
                 order = await OrderSchema.findOne({ _orderId, pair })
                 let updatedOrder
                 if (order) {
@@ -990,10 +999,14 @@ class Bot {
                 })
                 if (isLiquidated) {
                     this._inProgress = true
-                    Logger.info(`Position: Liquidated: is Pos Open${isOpen}`)
-                    this.onLiquidatedSignal(
+                    Logger.info(`Position: Liquidated: is Pos Open: ${isOpen}`)
+                    await this.onLiquidatedSignal(
                         this._bot.liquidationPrice,
-                        new Date.now()
+                        new Date.now(),
+                        this._position
+                    )
+                    Logger.info(
+                        `Position: Liquidated: ??ran liquidated signal??`
                     )
                 }
             } else {
