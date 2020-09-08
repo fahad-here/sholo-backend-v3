@@ -475,6 +475,56 @@ class Bot {
         }
     }
 
+    async _onLiqSig(price, timestamp, currentPosition) {
+        try {
+            Logger.info(`liquidated signal: price: ${price}`)
+            Logger.info(`liquidated signal: timestamp: ${timestamp} `)
+            Logger.info(
+                `liquidated signal: currentPos Id: ${currentPosition._id}`
+            )
+            this._position = null
+            const changedSet = {
+                exitPrice: price,
+                isOpen: false,
+                endedAt: timestamp,
+                liquidated: true
+            }
+
+            const posId = currentPosition._id
+            const updatedPos = await PositionSchema.findByIdAndUpdate(
+                { _id: posId },
+                { $set: changedSet },
+                { new: true }
+            )
+            this._bot = await BotSchema.findByIdAndUpdate(
+                { _id: this._bot._id },
+                {
+                    $set: {
+                        positionOpen: false,
+                        liquidated: true,
+                        balance: 0
+                    }
+                },
+                { new: true }
+            )
+            this._sendSignalToParent('socket', `${this._bot._id}`, {
+                type: 'position',
+                position: updatedPos
+            })
+            this._sendSignalToParent('email', `${this._bot._id}`, {
+                account: this._account,
+                bot: this._bot,
+                price,
+                liquidated: true,
+                whatPrice: 'liquidation price',
+                botName: this._bot.name
+            })
+            await this.stopBot()
+        } catch (e) {
+            Logger.error(`Error on liquidated signal `, e)
+        }
+    }
+
     async onLiquidatedSignal(price, timestamp, currentPosition) {
         try {
             Logger.info(`liquidated signal: price: ${price}`)
@@ -1000,9 +1050,12 @@ class Bot {
                 if (isLiquidated) {
                     this._inProgress = true
                     Logger.info(`Position: Liquidated: is Pos Open: ${isOpen}`)
-                    await this.onLiquidatedSignal(
-                        this._bot.liquidationPrice,
-                        new Date.now(),
+                    Logger.info(
+                        `Position: Liquidated: set inProgress: ${this._inProgress}`
+                    )
+                    await this._onLiqSig(
+                        liquidationPrice,
+                        Date.now(),
                         this._position
                     )
                     Logger.info(
