@@ -477,46 +477,44 @@ class Bot {
 
     async onLiquidatedSignal(price, timestamp) {
         try {
-            if (this._position && !this._inProgress) {
-                Logger.info(`liquidated signal `)
-                this._position = null
-                const changedSet = {
-                    exitPrice: price,
-                    isOpen: false,
-                    endedAt: timestamp,
-                    liquidated: true
-                }
-                const posId = this._position._id
-                await PositionSchema.findByIdAndUpdate(
-                    { _id: posId },
-                    { $set: changedSet },
-                    { new: true }
-                )
-                this._bot = await BotSchema.findByIdAndUpdate(
-                    { _id: this._bot._id },
-                    {
-                        $set: {
-                            positionOpen: false,
-                            liquidated: true,
-                            balance: 0
-                        }
-                    },
-                    { new: true }
-                )
-                this._sendSignalToParent('socket', `${this._bot._id}`, {
-                    type: 'position',
-                    position: this._position
-                })
-                this._sendSignalToParent('email', `${this._bot._id}`, {
-                    account: this._account,
-                    bot: this._bot,
-                    price,
-                    liquidated: true,
-                    whatPrice: 'liquidation price',
-                    botName: this._bot.name
-                })
-                await this.stopBot()
+            Logger.info(`liquidated signal `)
+            this._position = null
+            const changedSet = {
+                exitPrice: price,
+                isOpen: false,
+                endedAt: timestamp,
+                liquidated: true
             }
+            const posId = this._position._id
+            await PositionSchema.findByIdAndUpdate(
+                { _id: posId },
+                { $set: changedSet },
+                { new: true }
+            )
+            this._bot = await BotSchema.findByIdAndUpdate(
+                { _id: this._bot._id },
+                {
+                    $set: {
+                        positionOpen: false,
+                        liquidated: true,
+                        balance: 0
+                    }
+                },
+                { new: true }
+            )
+            this._sendSignalToParent('socket', `${this._bot._id}`, {
+                type: 'position',
+                position: this._position
+            })
+            this._sendSignalToParent('email', `${this._bot._id}`, {
+                account: this._account,
+                bot: this._bot,
+                price,
+                liquidated: true,
+                whatPrice: 'liquidation price',
+                botName: this._bot.name
+            })
+            await this.stopBot()
         } catch (e) {
             Logger.error(`Error on liquidated signal `, e)
         }
@@ -991,6 +989,7 @@ class Bot {
                     bot: this._bot
                 })
                 if (isLiquidated) {
+                    this._inProgress = true
                     Logger.info(`Position: Liquidated: is Pos Open${isOpen}`)
                     this.onLiquidatedSignal(
                         this._bot.liquidationPrice,
