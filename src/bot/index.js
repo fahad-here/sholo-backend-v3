@@ -116,19 +116,59 @@ class Bot {
         } else return true
     }
 
-    async _calculateFees(preOrderBalance, isMarket) {
+    async _calculateFees(preOrderBalance, isMarket, amount, price) {
         Logger.info('calculating fees')
         const postOrderBalance = await this._trader.getBalance()
-        const difference = this._bot.positionOpen
+        let difference = this._bot.positionOpen
             ? postOrderBalance.free[BTC] - preOrderBalance.free[BTC]
             : preOrderBalance.free[BTC] - postOrderBalance.free[BTC]
+        const leverage = this._bot.leverage
+        Logger.info(`postOrderBalance: ${postOrderBalance.free[BTC]}`)
+        Logger.info(`preOrderBalance: ${preOrderBalance.free[BTC]}`)
         Logger.info(`fees difference: ${difference}`)
+        if (isNaN(difference)) {
+            Logger.info(`nan diff`)
+            if (!preOrderBalance.free[BTC]) {
+                Logger.info(`preOrderBalance undefined`)
+                difference = this._bot.positionOpen
+                    ? new BigNumber(postOrderBalance.free[BTC])
+                          .minus(
+                              new BigNumber(amount)
+                                  .dividedBy(price)
+                                  .dividedBy(leverage)
+                          )
+                          .toFixed(8)
+                    : new BigNumber(postOrderBalance.free[BTC])
+                          .plus(
+                              new BigNumber(amount)
+                                  .dividedBy(price)
+                                  .dividedBy(leverage)
+                          )
+                          .toFixed(8)
+            } else if (!postOrderBalance.free[BTC]) {
+                Logger.info(`postOrderBalance undefined`)
+                difference = this._bot.positionOpen
+                    ? new BigNumber(preOrderBalance.free[BTC])
+                          .plus(
+                              new BigNumber(amount)
+                                  .dividedBy(price)
+                                  .dividedBy(leverage)
+                          )
+                          .toFixed(8)
+                    : new BigNumber(preOrderBalance.free[BTC])
+                          .minus(
+                              new BigNumber(amount)
+                                  .dividedBy(price)
+                                  .dividedBy(leverage)
+                          )
+                          .toFixed(8)
+            }
+        }
         const feePercent = isMarket
             ? FEES[FEE_TYPE_TAKER]
             : FEES[FEE_TYPE_MAKER]
         Logger.info(`is Market: ${isMarket}`)
         Logger.info(`fees type: ${feePercent}`)
-        const leverage = this._bot.leverage
         let fees
         switch (feePercent) {
             case FEE_TYPE_MAKER:
@@ -170,7 +210,6 @@ class Bot {
             )
             Logger.info(`(Currently Open)amount to buy: ${amount}`)
             Logger.info(`(Currently Open)margin amount ${margin}`)
-            return { amount, margin }
         } else {
             const tradeBalanceBtc = new BigNumber(balance)
                 .multipliedBy(leverage)
@@ -189,8 +228,8 @@ class Bot {
             )
             Logger.info(`(Currently Closed) amount to buy: ${amount}`)
             Logger.info(`(Currently Closed) margin amount ${margin}`)
-            return { amount, margin }
         }
+        return { amount, margin }
     }
 
     _sendSignalToParent(command, channel, message) {
@@ -242,9 +281,11 @@ class Bot {
             const preOrderBalance = await this._trader.getBalance()
             Logger.info(`pre order balance`, preOrderBalance)
             const { amount, margin } = await this._calculateAmount(price, isBuy)
+            price = Math.floor(price * 2) / 2
             Logger.info(`${this._bot._id} ${side}`)
             Logger.info(`amount : ${amount}`)
             Logger.info(`margin ${margin}`)
+            Logger.info(`price: ${price}`)
             Logger.info(`BALANCE: pre order bot balance: ${this._bot.balance}`)
             const liquidityCheck = isMarket
                 ? await this._checkLiquidity(amount, price)
@@ -265,7 +306,9 @@ class Bot {
                 this._currentOrderId = orderDetails.id
                 const { fees, difference } = await this._calculateFees(
                     preOrderBalance,
-                    isMarket
+                    isMarket,
+                    amount,
+                    price
                 )
                 Logger.info(`fees ${fees}`)
                 Logger.info(`difference ${difference}`)
@@ -293,7 +336,7 @@ class Bot {
                         .dividedBy(100000000)
                         .toFixed(8),
                     status: orderDetails.info.ordStatus,
-                    fees,
+                    fees: fees ? fees : 0,
                     botOrder,
                     totalOrderQuantity: amount,
                     type: isMarket ? ORDER_TYPE_MARKET : ORDER_TYPE_LIMIT,
@@ -320,13 +363,27 @@ class Bot {
                     {
                         $inc: { orderSequence: 1 },
                         $set: {
-                            balance: isBuy
+                            /*balance: isBuy
                                 ? new BigNumber(this._bot.balance)
-                                      .minus(difference)
+                                      .minus(
+                                          difference
+                                              ? difference
+                                              : new BigNumber(amount)
+                                                    .dividedBy(price)
+                                                    .dividedBy(leverage)
+                                                    .toFixed(8)
+                                      )
                                       .toFixed(8)
                                 : new BigNumber(this._bot.balance)
-                                      .plus(difference)
-                                      .toFixed(8),
+                                      .plus(
+                                          difference
+                                              ? difference
+                                              : new BigNumber(amount)
+                                                    .dividedBy(price)
+                                                    .dividedBy(leverage)
+                                                    .toFixed(8)
+                                      )
+                                      .toFixed(8),*/
                             previousPriceP: isMarket
                                 ? orderDetails.average
                                 : priceP,
@@ -435,7 +492,10 @@ class Bot {
                 })
                 Logger.info(`post updated session position bot`)
             } else {
+                Logger.error('error in buy sell signal')
                 Logger.info(`market is not liquid enough`)
+                this._inProgress = false
+                Logger.error('post error progress: ' + this._inProgress)
             }
         } catch (e) {
             Logger.error('error in buy sell signal', e)
@@ -765,7 +825,9 @@ class Bot {
                                         ? new BigNumber(this._bot.balance)
                                               .plus(cost)
                                               .toFixed(8)
-                                        : this._bot.balance
+                                        : new BigNumber(this._bot.balance)
+                                              .minus(cost)
+                                              .toFixed(8)
                                 }
                             },
                             { new: true }
@@ -929,10 +991,10 @@ class Bot {
                             { _id: this._bot._id },
                             {
                                 $set: {
-                                    orderOpen: false,
-                                    balance: new BigNumber(this._bot.balance)
+                                    orderOpen: false
+                                    /*balance: new BigNumber(this._bot.balance)
                                         .plus(cost)
-                                        .toFixed(8)
+                                        .toFixed(8)*/
                                 }
                             },
                             { new: true }
@@ -947,10 +1009,7 @@ class Bot {
                         type: 'order',
                         order: updatedOrder
                     })
-                } else
-                    Logger.info(
-                        `no order found for order id: ${_orderId}, trying again`
-                    )
+                }
             } while (!order)
         } catch (e) {
             Logger.error('Error saving order on change', e)
@@ -1102,12 +1161,16 @@ class Bot {
                     unrealisedPnl
                 }
                 changed = true
-                Logger.info(
-                    `BALANCE: position unrealised PNL: ${this._position.unrealisedPnl}`
-                )
+
                 const botRealisedPnl = new BigNumber(this._bot.realisedPnl)
                     .plus(this._position.unrealisedPnl)
                     .toFixed(8)
+                Logger.info(
+                    `BALANCE: position unrealised PNL: ${this._position.unrealisedPnl}`
+                )
+                Logger.info(
+                    `BALANCE: bot already realised PNL: ${this._bot.realisedPnl}`
+                )
                 Logger.info(`BALANCE: bot realised PNL cal: ${botRealisedPnl}`)
                 this._bot = await BotSchema.findByIdAndUpdate(
                     { _id: this._bot._id },
@@ -1348,7 +1411,10 @@ class Bot {
                         const orderDetails = await OrderSchema.findById({
                             _id: this._bot._previousOrderId
                         })
-                        if (orderDetails.remainQuantity !== 0) {
+                        if (
+                            orderDetails.remainQuantity !== 0 &&
+                            !this._bot.liquidated
+                        ) {
                             await this._trader.cancelOpenOrder(
                                 orderDetails._orderId
                             )
