@@ -814,6 +814,9 @@ class Bot {
                         Logger.info(
                             `BALANCE: pre order filled change cost cal: ${cost}`
                         )
+                        Logger.info(
+                            `BALANCE: pre change balance: ${this._bot.balance}`
+                        )
                         this._bot = await BotSchema.findByIdAndUpdate(
                             { _id: this._bot._id },
                             {
@@ -836,8 +839,7 @@ class Bot {
                             `bot post order update ` + this._bot.orderOpen
                         )
                         Logger.info(
-                            `BALANCE: bot balance order update ` +
-                                this._bot.balance
+                            `BALANCE: post change balance ` + this._bot.balance
                         )
 
                         const { _id } = this._account
@@ -1183,7 +1185,8 @@ class Bot {
                                 .toFixed(8),
                             unrealisedPnl
                         }
-                    }
+                    },
+                    { new: true }
                 )
                 Logger.info(
                     `BALANCE: post bot realised PNL balance: ${this._bot.balance}`
